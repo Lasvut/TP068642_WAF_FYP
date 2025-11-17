@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management - Admin Panel</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .navbar {
+            background: rgba(255,255,255,0.95) !important;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .main-card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin: 30px 0;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .log-entry {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+        }
+        .log-success {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+        .log-error {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <div class="container">
+            <a class="navbar-brand" href="/dashboard">
+                <i class="fas fa-shield-alt"></i> WAF System
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/dashboard"><i class="fas fa-home"></i> Dashboard</a>
+                <a class="nav-link" href="/monitor"><i class="fas fa-chart-line"></i> Monitor</a>
+                <a class="nav-link" href="/tools"><i class="fas fa-tools"></i> Tools</a>
+                <a class="nav-link active" href="/admin/user-management"><i class="fas fa-users"></i> Admin</a>
+                <a class="nav-link" href="/logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="main-card">
+            <h2 class="mb-4">
+                <i class="fas fa-users text-success"></i> User Management
+                <small class="text-muted float-end">Admin Tools</small>
+            </h2>
+
+            <!-- Info -->
+            <div class="alert alert-info">
+                <h5><i class="fas fa-info-circle"></i> User Management</h5>
+                <p class="mb-0">
+                    Create new users for the WAF application. Users will be stored in the database with hashed passwords.
+                </p>
+            </div>
+
+            <!-- Create User Form -->
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <i class="fas fa-user-plus"></i> Create New User
+                </div>
+                <div class="card-body">
+                    <form id="createUserForm">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="username" class="form-label fw-bold">Username:</label>
+                                <input type="text" class="form-control" id="username" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="password" class="form-label fw-bold">Password:</label>
+                                <input type="password" class="form-control" id="password" required minlength="4">
+                                <small class="text-muted">Minimum 4 characters</small>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="confirmPassword" class="form-label fw-bold">Confirm Password:</label>
+                                <input type="password" class="form-control" id="confirmPassword" required>
+                            </div>
+                            <div class="col-md-6 d-flex align-items-center">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="showPassword">
+                                    <label class="form-check-label" for="showPassword">
+                                        Show passwords
+                                    </label>
+                                </div>
+                                <div class="form-check ms-4">
+                                    <input class="form-check-input" type="checkbox" id="isAdmin">
+                                    <label class="form-check-label" for="isAdmin">
+                                        <strong>Admin privileges</strong>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="text-center">
+                            <button type="submit" class="btn btn-success btn-lg px-5">
+                                <i class="fas fa-user-plus"></i> Create User
+                            </button>
+                            <button type="reset" class="btn btn-secondary btn-lg px-5">
+                                <i class="fas fa-redo"></i> Clear Form
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Activity Log -->
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <i class="fas fa-list"></i> Activity Log
+                </div>
+                <div class="card-body" style="max-height: 400px; overflow-y: auto;" id="activityLog">
+                    <div class="log-entry">
+                        <small class="text-muted">[Ready]</small> User management system ready. Enter username and password to create a new user.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation to other admin tools -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <a href="/admin/attack-generator" class="btn btn-danger w-100 btn-lg">
+                    <i class="fas fa-fire"></i> Attack Generator
+                </a>
+            </div>
+            <div class="col-md-6">
+                <a href="/admin/anomaly-testing" class="btn btn-primary w-100 btn-lg">
+                    <i class="fas fa-chart-area"></i> Anomaly Testing
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Show/hide password
+        document.getElementById('showPassword').addEventListener('change', function() {
+            const passwordInput = document.getElementById('password');
+            const confirmPasswordInput = document.getElementById('confirmPassword');
+            const type = this.checked ? 'text' : 'password';
+            passwordInput.type = type;
+            confirmPasswordInput.type = type;
+        });
+
+        // Create user
+        document.getElementById('createUserForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const isAdmin = document.getElementById('isAdmin').checked;
+
+            // Validation
+            if (!username) {
+                alert('Username cannot be empty!');
+                return;
+            }
+
+            if (!password) {
+                alert('Password cannot be empty!');
+                return;
+            }
+
+            if (password !== confirmPassword) {
+                alert('Passwords do not match!');
+                return;
+            }
+
+            if (password.length < 4) {
+                alert('Password must be at least 4 characters long!');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/admin/create-user', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        password: password,
+                        is_admin: isAdmin
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Log success
+                    addLog(`✅ SUCCESS: User "${username}" created successfully!`, 'success');
+                    addLog(`   Username: ${username}`, 'success');
+                    addLog(`   Password: ${'*'.repeat(password.length)} (hashed in database)`, 'success');
+                    addLog(`   Admin: ${isAdmin ? 'Yes' : 'No'}`, 'success');
+
+                    // Show alert
+                    alert(`User "${username}" created successfully!\n\nUsername: ${username}\nPassword: ${password}\nAdmin: ${isAdmin ? 'Yes' : 'No'}\n\nYou can now login to the WAF application.`);
+
+                    // Reset form
+                    this.reset();
+                } else {
+                    // Log error
+                    addLog(`❌ ERROR: ${data.error}`, 'error');
+                    alert('Error: ' + data.error);
+                }
+
+            } catch (error) {
+                addLog(`❌ ERROR: ${error.message}`, 'error');
+                alert('Error creating user: ' + error.message);
+            }
+        });
+
+        function addLog(message, type = 'info') {
+            const logContainer = document.getElementById('activityLog');
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${type === 'success' ? 'log-success' : type === 'error' ? 'log-error' : ''}`;
+
+            const timestamp = new Date().toLocaleTimeString();
+            logEntry.innerHTML = `<small class="text-muted">[${timestamp}]</small> ${message}`;
+
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+    </script>
+</body>
+</html>

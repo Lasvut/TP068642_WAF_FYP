@@ -19,6 +19,7 @@ def init_db():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT UNIQUE NOT NULL,
         password_hash TEXT NOT NULL,
+        is_admin INTEGER DEFAULT 0,
         created_at TEXT NOT NULL
     )
     ''')
@@ -51,23 +52,23 @@ def get_client_ip(flask_request):
         return flask_request.headers.get('X-Forwarded-For').split(',')[0].strip()
     return flask_request.remote_addr or '0.0.0.0'
 
-def create_user(username, password_plain):
+def create_user(username, password_plain, is_admin=False):
     conn = get_connection()
     c = conn.cursor()
     pw_hash = generate_password_hash(password_plain)
-    c.execute("INSERT INTO users (username, password_hash, created_at) VALUES (?, ?, ?)",
-              (username, pw_hash, str(datetime.datetime.utcnow())))
+    c.execute("INSERT INTO users (username, password_hash, is_admin, created_at) VALUES (?, ?, ?, ?)",
+              (username, pw_hash, 1 if is_admin else 0, str(datetime.datetime.utcnow())))
     conn.commit()
     conn.close()
 
 def get_user_by_username(username):
     conn = get_connection()
     c = conn.cursor()
-    c.execute("SELECT id, username, password_hash FROM users WHERE username = ?", (username,))
+    c.execute("SELECT id, username, password_hash, is_admin FROM users WHERE username = ?", (username,))
     row = c.fetchone()
     conn.close()
     if row:
-        return (row['id'], row['username'], row['password_hash'])
+        return (row['id'], row['username'], row['password_hash'], row['is_admin'])
     return None
 
 def get_attack_stats():

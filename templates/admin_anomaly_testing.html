@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anomaly Testing - Admin Panel</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .navbar {
+            background: rgba(255,255,255,0.95) !important;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .main-card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin: 30px 0;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .metric-box {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .metric-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .results-text {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <div class="container">
+            <a class="navbar-brand" href="/dashboard">
+                <i class="fas fa-shield-alt"></i> WAF System
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/dashboard"><i class="fas fa-home"></i> Dashboard</a>
+                <a class="nav-link" href="/monitor"><i class="fas fa-chart-line"></i> Monitor</a>
+                <a class="nav-link" href="/tools"><i class="fas fa-tools"></i> Tools</a>
+                <a class="nav-link active" href="/admin/anomaly-testing"><i class="fas fa-chart-area"></i> Admin</a>
+                <a class="nav-link" href="/logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="main-card">
+            <h2 class="mb-4">
+                <i class="fas fa-chart-area text-primary"></i> Anomaly Detection Testing
+                <small class="text-muted float-end">Admin Tools</small>
+            </h2>
+
+            <!-- Info -->
+            <div class="alert alert-info">
+                <h5><i class="fas fa-info-circle"></i> About Anomaly Testing</h5>
+                <p class="mb-0">
+                    This tool tests the anomaly detection accuracy using:<br>
+                    • 50 normal traffic samples (70% for training, 30% for testing)<br>
+                    • 50 malicious traffic samples<br>
+                    • Calculates Accuracy, Precision, Recall, F1-Score<br>
+                    • Target: ≥80% accuracy for Objective 3
+                </p>
+            </div>
+
+            <!-- Configuration -->
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <label class="form-label fw-bold">Detection Threshold: <span id="thresholdValue">75</span>%</label>
+                    <input type="range" class="form-range" id="threshold" min="0" max="100" value="75">
+                </div>
+            </div>
+
+            <!-- Control Button -->
+            <div class="text-center mb-4">
+                <button id="runTestBtn" class="btn btn-primary btn-lg px-5">
+                    <i class="fas fa-play"></i> Run Anomaly Detection Test
+                </button>
+            </div>
+
+            <!-- Results -->
+            <div id="resultsContainer" style="display: none;">
+                <!-- Metrics -->
+                <h4 class="mb-3"><i class="fas fa-chart-bar"></i> Performance Metrics</h4>
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="metric-box">
+                            <div class="text-muted small">Accuracy</div>
+                            <div class="metric-value" id="accuracy">0%</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="metric-box">
+                            <div class="text-muted small">Precision</div>
+                            <div class="metric-value" id="precision">0%</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="metric-box">
+                            <div class="text-muted small">Recall</div>
+                            <div class="metric-value" id="recall">0%</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="metric-box">
+                            <div class="text-muted small">F1-Score</div>
+                            <div class="metric-value" id="f1score">0%</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Confusion Matrix -->
+                <h5 class="mb-3"><i class="fas fa-table"></i> Confusion Matrix</h5>
+                <div class="table-responsive mb-4">
+                    <table class="table table-bordered text-center">
+                        <thead class="table-light">
+                            <tr>
+                                <th></th>
+                                <th>Predicted Positive</th>
+                                <th>Predicted Negative</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <th class="table-light">Actual Positive</th>
+                                <td class="table-success"><strong>TP: <span id="tp">0</span></strong></td>
+                                <td class="table-danger"><strong>FN: <span id="fn">0</span></strong></td>
+                            </tr>
+                            <tr>
+                                <th class="table-light">Actual Negative</th>
+                                <td class="table-warning"><strong>FP: <span id="fp">0</span></strong></td>
+                                <td class="table-success"><strong>TN: <span id="tn">0</span></strong></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Objective Status -->
+                <div id="objectiveStatus" class="alert"></div>
+
+                <!-- Detailed Results -->
+                <div class="card">
+                    <div class="card-header bg-dark text-white">
+                        <i class="fas fa-list"></i> Detailed Test Results
+                    </div>
+                    <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                        <pre id="detailedResults" class="results-text mb-0"></pre>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loading Spinner -->
+            <div id="loadingSpinner" class="text-center" style="display: none;">
+                <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-3 fw-bold">Running anomaly detection test...</p>
+            </div>
+        </div>
+
+        <!-- Navigation to other admin tools -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <a href="/admin/attack-generator" class="btn btn-danger w-100 btn-lg">
+                    <i class="fas fa-fire"></i> Attack Generator
+                </a>
+            </div>
+            <div class="col-md-6">
+                <a href="/admin/user-management" class="btn btn-success w-100 btn-lg">
+                    <i class="fas fa-users"></i> User Management
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Update threshold display
+        document.getElementById('threshold').addEventListener('input', function() {
+            document.getElementById('thresholdValue').textContent = this.value;
+        });
+
+        // Run test
+        document.getElementById('runTestBtn').addEventListener('click', async function() {
+            const threshold = document.getElementById('threshold').value;
+
+            this.disabled = true;
+            document.getElementById('resultsContainer').style.display = 'none';
+            document.getElementById('loadingSpinner').style.display = 'block';
+
+            try {
+                const response = await fetch('/api/admin/run-anomaly-test', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ threshold: parseInt(threshold) })
+                });
+
+                const data = await response.json();
+                const metrics = data.metrics;
+
+                // Update metrics
+                document.getElementById('accuracy').textContent = metrics.accuracy + '%';
+                document.getElementById('precision').textContent = metrics.precision + '%';
+                document.getElementById('recall').textContent = metrics.recall + '%';
+                document.getElementById('f1score').textContent = metrics.f1_score + '%';
+
+                // Update confusion matrix
+                document.getElementById('tp').textContent = metrics.true_positives;
+                document.getElementById('fp').textContent = metrics.false_positives;
+                document.getElementById('tn').textContent = metrics.true_negatives;
+                document.getElementById('fn').textContent = metrics.false_negatives;
+
+                // Update objective status
+                const objectiveDiv = document.getElementById('objectiveStatus');
+                if (metrics.accuracy >= 80) {
+                    objectiveDiv.className = 'alert alert-success';
+                    objectiveDiv.innerHTML = `
+                        <h5><i class="fas fa-check-circle"></i> OBJECTIVE 3 SUCCESSFULLY MET!</h5>
+                        <p class="mb-0">Anomaly detection achieved ${metrics.accuracy}% accuracy (≥80% required)</p>
+                    `;
+                } else {
+                    objectiveDiv.className = 'alert alert-warning';
+                    objectiveDiv.innerHTML = `
+                        <h5><i class="fas fa-exclamation-triangle"></i> OBJECTIVE 3 NOT MET</h5>
+                        <p class="mb-0">Anomaly detection achieved ${metrics.accuracy}% accuracy (need ≥80%)</p>
+                        <p class="mb-0 mt-2"><strong>Recommendations:</strong></p>
+                        <ul class="mb-0">
+                            <li>Adjust anomaly threshold (currently ${threshold})</li>
+                            <li>Add more training samples</li>
+                            <li>Fine-tune baseline parameters</li>
+                        </ul>
+                    `;
+                }
+
+                // Build detailed results text
+                let detailedText = '='.repeat(70) + '\n';
+                detailedText += 'PERFORMANCE METRICS\n';
+                detailedText += '='.repeat(70) + '\n';
+                detailedText += `Total Test Cases:    ${metrics.total}\n`;
+                detailedText += `True Positives:      ${metrics.true_positives}  (Attacks correctly detected)\n`;
+                detailedText += `False Positives:     ${metrics.false_positives}  (Normal traffic wrongly blocked)\n`;
+                detailedText += `True Negatives:      ${metrics.true_negatives}  (Normal traffic correctly allowed)\n`;
+                detailedText += `False Negatives:     ${metrics.false_negatives}  (Attacks missed)\n`;
+                detailedText += '-'.repeat(70) + '\n';
+                detailedText += `Accuracy:            ${metrics.accuracy}%\n`;
+                detailedText += `Precision:           ${metrics.precision}%\n`;
+                detailedText += `Recall (Sensitivity):${metrics.recall}%\n`;
+                detailedText += `Specificity:         ${metrics.specificity}%\n`;
+                detailedText += `F1-Score:            ${metrics.f1_score}%\n`;
+                detailedText += '='.repeat(70) + '\n';
+
+                document.getElementById('detailedResults').textContent = detailedText;
+
+                // Show results
+                document.getElementById('loadingSpinner').style.display = 'none';
+                document.getElementById('resultsContainer').style.display = 'block';
+
+            } catch (error) {
+                alert('Error running test: ' + error.message);
+            } finally {
+                this.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
