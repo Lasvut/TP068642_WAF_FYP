@@ -2,9 +2,10 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 from werkzeug.security import check_password_hash
 from middleware import waf_middleware
 from database import get_user_by_username, init_db, get_attack_stats, get_recent_logs, get_connection, create_user, get_all_users
-from ultra_anomaly_detection import UltraAnomalyDetector, AnomalyDetector
+from ultra_anomaly_detection import EnhancedUltraAnomalyDetector as AnomalyDetector
 import os
 import shutil
+import csv
 from datetime import datetime
 import time
 
@@ -307,15 +308,16 @@ def api_anomaly_test():
     threshold = data.get('threshold', 75)
 
     try:
-        # Create detector
-        detector = AnomalyDetector()
+        # Create detector with ML enabled
+        detector = AnomalyDetector(enable_ml=True)
 
-        # Get samples
+        # Get samples - try to load from CSIC dataset first
         normal_samples = get_normal_samples()
         malicious_samples = get_malicious_samples()
 
-        # Train on first 30 normal samples
-        detector.train_baseline(normal_samples[:30])
+        # Train on 70% of normal samples (more realistic training)
+        train_size = int(len(normal_samples) * 0.7)
+        detector.train_baseline(normal_samples[:train_size])
 
         # Test variables
         true_positives = 0
@@ -323,18 +325,24 @@ def api_anomaly_test():
         true_negatives = 0
         false_negatives = 0
 
+        # Use remaining 30% for testing normal traffic
+        test_normal_samples = normal_samples[train_size:]
+
         detailed_log = []
         detailed_log.append("=" * 70)
         detailed_log.append("ANOMALY DETECTION ACCURACY TEST")
         detailed_log.append("=" * 70)
+        detailed_log.append(f"Training: {train_size} normal samples ({train_size/len(normal_samples)*100:.0f}%)")
+        detailed_log.append(f"Testing: {len(test_normal_samples)} normal + {len(malicious_samples)} attack samples")
+        detailed_log.append(f"Detector: EnhancedUltraAnomalyDetector (ML + Stats + Rules)")
         detailed_log.append("")
 
         # Test normal traffic
         detailed_log.append("=" * 70)
-        detailed_log.append(f"TESTING NORMAL TRAFFIC (20 test samples, threshold={threshold})")
+        detailed_log.append(f"TESTING NORMAL TRAFFIC ({len(test_normal_samples)} samples, threshold={threshold})")
         detailed_log.append("=" * 70)
 
-        for i, sample in enumerate(normal_samples[30:], 1):
+        for i, sample in enumerate(test_normal_samples, 1):
             is_anom, score, details = detector.is_anomalous(sample, threshold=threshold)
             if is_anom:
                 false_positives += 1
@@ -345,7 +353,7 @@ def api_anomaly_test():
 
         detailed_log.append("")
         detailed_log.append("=" * 70)
-        detailed_log.append("TESTING MALICIOUS TRAFFIC (50 attack samples)")
+        detailed_log.append(f"TESTING MALICIOUS TRAFFIC ({len(malicious_samples)} attack samples)")
         detailed_log.append("=" * 70)
 
         for i, sample in enumerate(malicious_samples, 1):
@@ -414,7 +422,38 @@ def api_anomaly_test():
         return jsonify({"success": False, "error": str(e)}), 500
 
 def get_normal_samples():
-    """Get normal traffic samples"""
+    """Get normal traffic samples - try to load from CSIC dataset first"""
+
+    # Try to load from CSIC CSV dataset
+    if os.path.exists('datasets/csic2010/CSIC_2010.csv'):
+        try:
+            normal_samples = []
+            with open('datasets/csic2010/CSIC_2010.csv', 'r', encoding='utf-8', errors='ignore') as f:
+                reader = csv.reader(f)
+                next(reader)  # Skip header
+
+                for row in reader:
+                    if len(row) >= 3 and row[0].strip() == 'Normal':
+                        url = row[-1].strip()
+                        normal_samples.append({
+                            'ip': '192.168.1.100',
+                            'path': '',
+                            'payload': url,
+                            'timestamp': time.time()
+                        })
+
+                        # Limit to 100 samples for testing performance
+                        if len(normal_samples) >= 100:
+                            break
+
+            if len(normal_samples) >= 50:
+                print(f"[Anomaly Test] Loaded {len(normal_samples)} normal samples from CSIC dataset")
+                return normal_samples
+        except Exception as e:
+            print(f"[Anomaly Test] Could not load CSIC dataset: {e}")
+
+    # Fallback to hardcoded samples if CSIC not available
+    print("[Anomaly Test] Using hardcoded normal samples")
     return [
         {'ip': '192.168.1.10', 'path': '/login', 'payload': 'username=john&password=pass123', 'timestamp': time.time()},
         {'ip': '192.168.1.11', 'path': '/login', 'payload': 'username=alice&password=secret456', 'timestamp': time.time()},
@@ -469,7 +508,38 @@ def get_normal_samples():
     ]
 
 def get_malicious_samples():
-    """Get malicious traffic samples"""
+    """Get malicious traffic samples - try to load from CSIC dataset first"""
+
+    # Try to load from CSIC CSV dataset
+    if os.path.exists('datasets/csic2010/CSIC_2010.csv'):
+        try:
+            attack_samples = []
+            with open('datasets/csic2010/CSIC_2010.csv', 'r', encoding='utf-8', errors='ignore') as f:
+                reader = csv.reader(f)
+                next(reader)  # Skip header
+
+                for row in reader:
+                    if len(row) >= 3 and row[0].strip() == 'Anomalous':
+                        url = row[-1].strip()
+                        attack_samples.append({
+                            'ip': '10.0.0.100',
+                            'path': '',
+                            'payload': url,
+                            'timestamp': time.time()
+                        })
+
+                        # Limit to 50 attack samples for testing
+                        if len(attack_samples) >= 50:
+                            break
+
+            if len(attack_samples) >= 30:
+                print(f"[Anomaly Test] Loaded {len(attack_samples)} attack samples from CSIC dataset")
+                return attack_samples
+        except Exception as e:
+            print(f"[Anomaly Test] Could not load attack samples from CSIC dataset: {e}")
+
+    # Fallback to hardcoded attack samples if CSIC not available
+    print("[Anomaly Test] Using hardcoded attack samples")
     return [
         # SQL Injection
         {'ip': '10.0.0.1', 'path': '/login', 'payload': "username=' OR '1'='1&password=anything", 'timestamp': time.time()},
