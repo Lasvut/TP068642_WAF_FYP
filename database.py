@@ -70,6 +70,15 @@ def get_user_by_username(username):
         return (row['id'], row['username'], row['password_hash'])
     return None
 
+def get_all_users():
+    '''Get all users from the database'''
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("SELECT id, username, created_at FROM users ORDER BY created_at DESC")
+    rows = c.fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
 def get_attack_stats():
     '''Get statistics about blocked attacks'''
     conn = get_connection()
