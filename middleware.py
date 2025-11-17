@@ -8,7 +8,7 @@ from database import log_attack, get_client_ip
 # Import the enhanced detector (now with ML and statistical analysis)
 from ultra_anomaly_detection import EnhancedUltraAnomalyDetector as AnomalyDetector
 
-SAFE_PATHS = ['/login', '/', '/logout', '/favicon.ico', '/monitor', '/api/logs', '/dashboard', '/tools']
+SAFE_PATHS = ['/login', '/', '/logout', '/favicon.ico', '/monitor', '/api/logs', '/dashboard', '/tools', '/user-management', '/anomaly-testing']
 
 # Administrative endpoints that bypass anomaly detection when authenticated
 # These are legitimate operations that may contain SQL/command keywords
@@ -17,6 +17,9 @@ ADMIN_ENDPOINTS = [
     '/api/db/backup',    # Database backup
     '/api/db/export',    # CSV export
     '/api/db/stats',     # Database statistics
+    '/api/users',        # Get all users
+    '/api/users/create', # Create new user
+    '/api/anomaly/test', # Anomaly detection testing
 ]
 
 # Initialize enhanced anomaly detector with ML enabled
