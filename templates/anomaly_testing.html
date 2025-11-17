@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anomaly Testing - WAF System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding-bottom: 50px;
+        }
+        .navbar {
+            background: rgba(255,255,255,0.95) !important;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .card-custom {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .results-section {
+            display: none;
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-bottom: 20px;
+        }
+        .metric-card {
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+        }
+        .metric-card.success {
+            border-left-color: #28a745;
+            background-color: #d4edda;
+        }
+        .metric-card.warning {
+            border-left-color: #ffc107;
+            background-color: #fff3cd;
+        }
+        .metric-card.danger {
+            border-left-color: #dc3545;
+            background-color: #f8d7da;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <div class="container">
+            <a class="navbar-brand" href="/dashboard">
+                <i class="fas fa-shield-alt"></i> WAF System
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/dashboard"><i class="fas fa-home"></i> Dashboard</a>
+                <a class="nav-link" href="/monitor"><i class="fas fa-chart-line"></i> Monitor</a>
+                <a class="nav-link" href="/tools"><i class="fas fa-tools"></i> Tools</a>
+                <a class="nav-link" href="/user-management"><i class="fas fa-users"></i> Users</a>
+                <a class="nav-link active" href="/anomaly-testing"><i class="fas fa-brain"></i> Anomaly Test</a>
+                <a class="nav-link" href="/logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <h2 class="text-white mb-4">
+            <i class="fas fa-brain"></i> Anomaly Detection Testing
+        </h2>
+
+        <!-- Info Card -->
+        <div class="card-custom">
+            <h4 class="mb-3"><i class="fas fa-info-circle"></i> About Anomaly Testing</h4>
+            <p class="mb-2">This tool tests the anomaly detection accuracy using:</p>
+            <ul>
+                <li>50 normal traffic samples (70% for training, 30% for testing)</li>
+                <li>50 malicious traffic samples</li>
+                <li>Calculates Accuracy, Precision, Recall, F1-Score, and Specificity</li>
+                <li><strong>Target: ≥80% accuracy for Objective 3</strong></li>
+            </ul>
+        </div>
+
+        <!-- Configuration -->
+        <div class="card-custom">
+            <h4 class="mb-3"><i class="fas fa-cog"></i> Test Configuration</h4>
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <label for="thresholdSlider" class="form-label fw-bold">
+                        Detection Threshold: <span id="thresholdValue">75</span>
+                    </label>
+                    <input type="range" class="form-range" id="thresholdSlider" min="0" max="100" value="75">
+                    <small class="text-muted">Higher threshold = more strict detection</small>
+                </div>
+                <div class="col-md-4">
+                    <button class="btn btn-primary w-100" id="runTestBtn" onclick="runAnomalyTest()">
+                        <i class="fas fa-play"></i> Run Anomaly Detection Test
+                        <span class="spinner-border spinner-border-sm ms-2 d-none" id="testSpinner"></span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div id="resultsSection" class="results-section">
+            <!-- Performance Metrics -->
+            <div class="card-custom">
+                <h4 class="mb-3"><i class="fas fa-chart-bar"></i> Performance Metrics</h4>
+                <div class="row">
+                    <div class="col-md-6" id="metricsCards"></div>
+                    <div class="col-md-6">
+                        <div class="chart-container">
+                            <canvas id="metricsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Confusion Matrix -->
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card-custom">
+                        <h4 class="mb-3"><i class="fas fa-table"></i> Confusion Matrix</h4>
+                        <div class="chart-container">
+                            <canvas id="confusionChart"></canvas>
+                        </div>
+                        <div class="table-responsive mt-3">
+                            <table class="table table-bordered text-center">
+                                <thead>
+                                    <tr>
+                                        <th></th>
+                                        <th>Predicted Positive</th>
+                                        <th>Predicted Negative</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <th>Actual Positive</th>
+                                        <td class="bg-success bg-opacity-25"><strong>TP: <span id="tpValue">0</span></strong></td>
+                                        <td class="bg-danger bg-opacity-25"><strong>FN: <span id="fnValue">0</span></strong></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Actual Negative</th>
+                                        <td class="bg-danger bg-opacity-25"><strong>FP: <span id="fpValue">0</span></strong></td>
+                                        <td class="bg-success bg-opacity-25"><strong>TN: <span id="tnValue">0</span></strong></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Results Distribution -->
+                <div class="col-md-6">
+                    <div class="card-custom">
+                        <h4 class="mb-3"><i class="fas fa-pie-chart"></i> Results Distribution</h4>
+                        <div class="chart-container">
+                            <canvas id="distributionChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detailed Results -->
+            <div class="card-custom">
+                <h4 class="mb-3"><i class="fas fa-list"></i> Detailed Test Results</h4>
+                <div class="p-3 bg-light rounded" style="height: 400px; overflow-y: auto; font-family: monospace; font-size: 0.85rem;" id="detailedResults"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Threshold slider
+        document.getElementById('thresholdSlider').addEventListener('input', function() {
+            document.getElementById('thresholdValue').textContent = this.value;
+        });
+
+        let metricsChart = null;
+        let confusionChart = null;
+        let distributionChart = null;
+
+        function runAnomalyTest() {
+            const threshold = document.getElementById('thresholdSlider').value;
+            const runBtn = document.getElementById('runTestBtn');
+            const spinner = document.getElementById('testSpinner');
+
+            runBtn.disabled = true;
+            spinner.classList.remove('d-none');
+
+            // Hide results while loading
+            document.getElementById('resultsSection').style.display = 'none';
+
+            fetch('/api/anomaly/test', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ threshold: parseInt(threshold) })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    displayResults(data.results);
+                    document.getElementById('resultsSection').style.display = 'block';
+                } else {
+                    alert('Error: ' + data.error);
+                }
+
+                runBtn.disabled = false;
+                spinner.classList.add('d-none');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error running test: ' + error.message);
+                runBtn.disabled = false;
+                spinner.classList.add('d-none');
+            });
+        }
+
+        function displayResults(results) {
+            const { tp, fp, tn, fn, accuracy, precision, recall, f1_score, specificity, detailed_log } = results;
+
+            // Update confusion matrix values
+            document.getElementById('tpValue').textContent = tp;
+            document.getElementById('fpValue').textContent = fp;
+            document.getElementById('tnValue').textContent = tn;
+            document.getElementById('fnValue').textContent = fn;
+
+            // Display metrics cards
+            const metricsCards = document.getElementById('metricsCards');
+            const metrics = [
+                { name: 'Accuracy', value: accuracy, target: 80 },
+                { name: 'Precision', value: precision, target: 80 },
+                { name: 'Recall', value: recall, target: 80 },
+                { name: 'F1-Score', value: f1_score, target: 80 },
+                { name: 'Specificity', value: specificity, target: 80 }
+            ];
+
+            metricsCards.innerHTML = metrics.map(m => {
+                const statusClass = m.value >= 80 ? 'success' : m.value >= 60 ? 'warning' : 'danger';
+                const icon = m.value >= m.target ? '✅' : '⚠️';
+                return `
+                    <div class="metric-card ${statusClass}">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <strong>${icon} ${m.name}</strong>
+                            <span class="h5 mb-0">${m.value.toFixed(2)}%</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Update metrics chart
+            if (metricsChart) metricsChart.destroy();
+            const ctx1 = document.getElementById('metricsChart').getContext('2d');
+            metricsChart = new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: ['Accuracy', 'Precision', 'Recall', 'F1-Score', 'Specificity'],
+                    datasets: [{
+                        label: 'Performance (%)',
+                        data: [accuracy, precision, recall, f1_score, specificity],
+                        backgroundColor: metrics.map(m =>
+                            m.value >= 80 ? 'rgba(40, 167, 69, 0.6)' :
+                            m.value >= 60 ? 'rgba(255, 193, 7, 0.6)' :
+                            'rgba(220, 53, 69, 0.6)'
+                        ),
+                        borderColor: metrics.map(m =>
+                            m.value >= 80 ? 'rgba(40, 167, 69, 1)' :
+                            m.value >= 60 ? 'rgba(255, 193, 7, 1)' :
+                            'rgba(220, 53, 69, 1)'
+                        ),
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: { callback: value => value + '%' }
+                        }
+                    }
+                }
+            });
+
+            // Update confusion matrix chart
+            if (confusionChart) confusionChart.destroy();
+            const ctx2 = document.getElementById('confusionChart').getContext('2d');
+            confusionChart = new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: ['True Positives', 'False Positives', 'True Negatives', 'False Negatives'],
+                    datasets: [{
+                        label: 'Count',
+                        data: [tp, fp, tn, fn],
+                        backgroundColor: [
+                            'rgba(40, 167, 69, 0.6)',
+                            'rgba(220, 53, 69, 0.6)',
+                            'rgba(40, 167, 69, 0.6)',
+                            'rgba(220, 53, 69, 0.6)'
+                        ],
+                        borderColor: [
+                            'rgba(40, 167, 69, 1)',
+                            'rgba(220, 53, 69, 1)',
+                            'rgba(40, 167, 69, 1)',
+                            'rgba(220, 53, 69, 1)'
+                        ],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+
+            // Update distribution chart
+            if (distributionChart) distributionChart.destroy();
+            const ctx3 = document.getElementById('distributionChart').getContext('2d');
+            distributionChart = new Chart(ctx3, {
+                type: 'pie',
+                data: {
+                    labels: [
+                        'True Positives (Correct Detections)',
+                        'False Positives (False Alarms)',
+                        'True Negatives (Correct Passes)',
+                        'False Negatives (Missed Attacks)'
+                    ],
+                    datasets: [{
+                        data: [tp, fp, tn, fn],
+                        backgroundColor: [
+                            'rgba(40, 167, 69, 0.8)',
+                            'rgba(255, 193, 7, 0.8)',
+                            'rgba(23, 162, 184, 0.8)',
+                            'rgba(220, 53, 69, 0.8)'
+                        ],
+                        borderColor: [
+                            'rgba(40, 167, 69, 1)',
+                            'rgba(255, 193, 7, 1)',
+                            'rgba(23, 162, 184, 1)',
+                            'rgba(220, 53, 69, 1)'
+                        ],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { boxWidth: 12, fontSize: 10 }
+                        }
+                    }
+                }
+            });
+
+            // Display detailed results
+            document.getElementById('detailedResults').innerHTML = detailed_log;
+        }
+    </script>
+</body>
+</html>

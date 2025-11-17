@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management - WAF System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding-bottom: 50px;
+        }
+        .navbar {
+            background: rgba(255,255,255,0.95) !important;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .card-custom {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .alert-custom {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            z-index: 9999;
+            min-width: 300px;
+        }
+        .users-table {
+            background: white;
+            border-radius: 10px;
+        }
+        .user-row:hover {
+            background-color: #f8f9fa;
+        }
+        .loading-spinner {
+            display: none;
+        }
+        .loading-spinner.active {
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <div class="container">
+            <a class="navbar-brand" href="/dashboard">
+                <i class="fas fa-shield-alt"></i> WAF System
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/dashboard"><i class="fas fa-home"></i> Dashboard</a>
+                <a class="nav-link" href="/monitor"><i class="fas fa-chart-line"></i> Monitor</a>
+                <a class="nav-link" href="/tools"><i class="fas fa-tools"></i> Tools</a>
+                <a class="nav-link active" href="/user-management"><i class="fas fa-users"></i> Users</a>
+                <a class="nav-link" href="/anomaly-testing"><i class="fas fa-brain"></i> Anomaly Test</a>
+                <a class="nav-link" href="/logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div id="alertContainer"></div>
+
+    <div class="container mt-4">
+        <h2 class="text-white mb-4">
+            <i class="fas fa-users"></i> User Management
+        </h2>
+
+        <div class="row">
+            <!-- Create User Form -->
+            <div class="col-md-6">
+                <div class="card-custom">
+                    <h4 class="mb-4"><i class="fas fa-user-plus"></i> Create New User</h4>
+                    <form id="createUserForm">
+                        <div class="mb-3">
+                            <label for="username" class="form-label fw-bold">Username</label>
+                            <input type="text" class="form-control" id="username" name="username" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="form-label fw-bold">Password</label>
+                            <input type="password" class="form-control" id="password" name="password" required>
+                            <small class="text-muted">Minimum 4 characters</small>
+                        </div>
+                        <div class="mb-3">
+                            <label for="confirmPassword" class="form-label fw-bold">Confirm Password</label>
+                            <input type="password" class="form-control" id="confirmPassword" name="confirmPassword" required>
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="showPassword">
+                            <label class="form-check-label" for="showPassword">Show passwords</label>
+                        </div>
+                        <button type="submit" class="btn btn-success w-100">
+                            <i class="fas fa-user-plus"></i> Create User
+                            <span class="spinner-border spinner-border-sm ms-2 loading-spinner" id="createSpinner"></span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Existing Users List -->
+            <div class="col-md-6">
+                <div class="card-custom">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4 class="mb-0"><i class="fas fa-list"></i> Existing Users</h4>
+                        <button class="btn btn-primary btn-sm" onclick="loadUsers()">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover users-table">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Username</th>
+                                    <th>Created At</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usersTableBody">
+                                <tr>
+                                    <td colspan="3" class="text-center">
+                                        <span class="spinner-border spinner-border-sm" id="loadingSpinner"></span>
+                                        Loading users...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="userCount" class="text-muted small mt-2"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Activity Log -->
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <div class="card-custom">
+                    <h4 class="mb-3"><i class="fas fa-history"></i> Activity Log</h4>
+                    <div class="p-3 bg-light rounded" style="height: 250px; overflow-y: auto; font-family: monospace; font-size: 0.9rem;" id="activityLog">
+                        <div class="text-muted">[System] User management system ready.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Show/hide password functionality
+        document.getElementById('showPassword').addEventListener('change', function() {
+            const passwordField = document.getElementById('password');
+            const confirmPasswordField = document.getElementById('confirmPassword');
+            const type = this.checked ? 'text' : 'password';
+            passwordField.type = type;
+            confirmPasswordField.type = type;
+        });
+
+        // Alert function
+        function showAlert(message, type) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-' + type + ' alert-dismissible fade show alert-custom';
+            alertDiv.innerHTML = message + '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
+            document.getElementById('alertContainer').appendChild(alertDiv);
+            setTimeout(function() { alertDiv.remove(); }, 5000);
+        }
+
+        // Log activity
+        function logActivity(message, type = 'info') {
+            const logDiv = document.getElementById('activityLog');
+            const timestamp = new Date().toLocaleTimeString();
+            const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
+            const entry = document.createElement('div');
+            entry.className = type === 'error' ? 'text-danger' : type === 'success' ? 'text-success' : '';
+            entry.textContent = `[${timestamp}] ${icon} ${message}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        // Load users
+        function loadUsers() {
+            document.getElementById('loadingSpinner').style.display = 'inline-block';
+
+            fetch('/api/users')
+                .then(response => response.json())
+                .then(data => {
+                    const tbody = document.getElementById('usersTableBody');
+                    tbody.innerHTML = '';
+
+                    if (data.users && data.users.length > 0) {
+                        data.users.forEach(user => {
+                            const row = document.createElement('tr');
+                            row.className = 'user-row';
+
+                            const createdDate = new Date(user.created_at);
+                            const formattedDate = createdDate.toLocaleString();
+
+                            row.innerHTML = `
+                                <td>${user.id}</td>
+                                <td><strong>${user.username}</strong></td>
+                                <td>${formattedDate}</td>
+                            `;
+                            tbody.appendChild(row);
+                        });
+
+                        document.getElementById('userCount').textContent = `Total users: ${data.users.length}`;
+                        logActivity(`Loaded ${data.users.length} user(s) from database.`);
+                    } else {
+                        tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">No users found</td></tr>';
+                        document.getElementById('userCount').textContent = 'Total users: 0';
+                    }
+
+                    document.getElementById('loadingSpinner').style.display = 'none';
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    document.getElementById('usersTableBody').innerHTML =
+                        '<tr><td colspan="3" class="text-center text-danger">Error loading users</td></tr>';
+                    logActivity('Error loading users: ' + error.message, 'error');
+                    document.getElementById('loadingSpinner').style.display = 'none';
+                });
+        }
+
+        // Create user form submission
+        document.getElementById('createUserForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+
+            // Validation
+            if (!username) {
+                showAlert('Username cannot be empty!', 'danger');
+                return;
+            }
+
+            if (!password) {
+                showAlert('Password cannot be empty!', 'danger');
+                return;
+            }
+
+            if (password !== confirmPassword) {
+                showAlert('Passwords do not match!', 'danger');
+                logActivity(`Failed to create user '${username}': Passwords do not match`, 'error');
+                return;
+            }
+
+            if (password.length < 4) {
+                showAlert('Password must be at least 4 characters long!', 'danger');
+                return;
+            }
+
+            // Show loading spinner
+            document.getElementById('createSpinner').classList.add('active');
+
+            // Send request
+            fetch('/api/users/create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    username: username,
+                    password: password
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('createSpinner').classList.remove('active');
+
+                if (data.success) {
+                    showAlert(`User '${username}' created successfully!`, 'success');
+                    logActivity(`SUCCESS: User '${username}' created successfully!`, 'success');
+                    logActivity(`   Username: ${username}`, 'success');
+                    logActivity(`   Password: ${'*'.repeat(password.length)} (hashed in database)`, 'success');
+
+                    // Clear form
+                    document.getElementById('createUserForm').reset();
+                    document.getElementById('showPassword').checked = false;
+
+                    // Reload users list
+                    loadUsers();
+                } else {
+                    showAlert('Error: ' + data.error, 'danger');
+                    logActivity(`ERROR: ${data.error}`, 'error');
+                }
+            })
+            .catch(error => {
+                document.getElementById('createSpinner').classList.remove('active');
+                showAlert('Error: ' + error.message, 'danger');
+                logActivity('Error creating user: ' + error.message, 'error');
+            });
+        });
+
+        // Load users on page load
+        window.addEventListener('load', function() {
+            loadUsers();
+        });
+    </script>
+</body>
+</html>
