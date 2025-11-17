@@ -62,6 +62,9 @@
                 <a class="nav-link active" href="/dashboard"><i class="fas fa-home"></i> Dashboard</a>
                 <a class="nav-link" href="/monitor"><i class="fas fa-chart-line"></i> Monitor</a>
                 <a class="nav-link" href="/tools"><i class="fas fa-tools"></i> Tools</a>
+                {% if session.get('is_admin') %}
+                <a class="nav-link" href="/admin/attack-generator"><i class="fas fa-user-shield"></i> Admin</a>
+                {% endif %}
                 <a class="nav-link" href="/logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
             </div>
         </div>
@@ -130,6 +133,68 @@
                 </div>
             </div>
         </div>
+
+        <!-- Admin Tools (Only for Admin Users) -->
+        {% if session.get('is_admin') %}
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <div class="alert alert-warning">
+                    <h5><i class="fas fa-user-shield"></i> Admin Access Granted</h5>
+                    <p class="mb-0">You have administrative privileges. Access advanced testing and management tools below.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <!-- Attack Generator -->
+            <div class="col-md-4">
+                <div class="dashboard-card text-center">
+                    <div class="feature-icon">
+                        <i class="fas fa-fire"></i>
+                    </div>
+                    <h3>Attack Generator</h3>
+                    <p class="text-muted">
+                        Generate and send test attacks to validate WAF protection and measure block rates
+                    </p>
+                    <a href="/admin/attack-generator" class="btn btn-danger btn-feature">
+                        <i class="fas fa-fire"></i> Generate Attacks
+                    </a>
+                </div>
+            </div>
+
+            <!-- Anomaly Testing -->
+            <div class="col-md-4">
+                <div class="dashboard-card text-center">
+                    <div class="feature-icon">
+                        <i class="fas fa-chart-area"></i>
+                    </div>
+                    <h3>Anomaly Testing</h3>
+                    <p class="text-muted">
+                        Test anomaly detection accuracy and measure performance metrics (Objective 3)
+                    </p>
+                    <a href="/admin/anomaly-testing" class="btn btn-primary btn-feature">
+                        <i class="fas fa-chart-area"></i> Run Tests
+                    </a>
+                </div>
+            </div>
+
+            <!-- User Management -->
+            <div class="col-md-4">
+                <div class="dashboard-card text-center">
+                    <div class="feature-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <h3>User Management</h3>
+                    <p class="text-muted">
+                        Create new users with customizable permissions and admin privileges
+                    </p>
+                    <a href="/admin/user-management" class="btn btn-success btn-feature">
+                        <i class="fas fa-users"></i> Manage Users
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
 
         <!-- Protection Features -->
         <div class="row mt-4">

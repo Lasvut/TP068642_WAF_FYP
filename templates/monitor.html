@@ -287,6 +287,10 @@
             <div class="header-right">
                 <span class="username">👤 {{ username }}</span>
                 <a href="/dashboard" class="btn btn-primary">Dashboard</a>
+                <a href="/tools" class="btn btn-primary">Tools</a>
+                {% if session.get('is_admin') %}
+                <a href="/admin/attack-generator" class="btn btn-primary">Admin</a>
+                {% endif %}
                 <a href="/logout" class="btn btn-secondary">Logout</a>
             </div>
         </div>
