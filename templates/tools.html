@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WAF Tools - Database & Testing</title>
+    <title>WAF Tools</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
@@ -11,6 +11,11 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px 0;
+        }
+        .navbar {
+            background: rgba(255,255,255,0.95) !important;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
         .tool-card {
             background: white;
@@ -43,11 +48,6 @@
             border-radius: 10px;
             margin-bottom: 15px;
         }
-        .navbar {
-            background: rgba(255,255,255,0.95) !important;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
         .alert-custom {
             position: fixed;
             top: 80px;
@@ -61,10 +61,16 @@
         .loading-spinner.active {
             display: inline-block;
         }
+        .code-box {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            margin: 10px 0;
+        }
     </style>
 </head>
 <body>
-    <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-light">
         <div class="container">
             <a class="navbar-brand" href="/dashboard">
@@ -79,7 +85,6 @@
         </div>
     </nav>
 
-    <!-- Alert Container -->
     <div id="alertContainer"></div>
 
     <div class="container mt-4">
@@ -87,7 +92,6 @@
             <i class="fas fa-tools"></i> WAF Management Tools
         </h2>
 
-        <!-- Database Statistics -->
         <div class="row mb-4">
             <div class="col-md-12">
                 <div class="tool-card">
@@ -117,7 +121,6 @@
         </div>
 
         <div class="row">
-            <!-- Clear All Logs -->
             <div class="col-md-6 col-lg-4">
                 <div class="tool-card text-center">
                     <div class="tool-icon">
@@ -129,11 +132,10 @@
                         <i class="fas fa-trash"></i> Clear All Logs
                         <span class="spinner-border spinner-border-sm ms-2 loading-spinner" id="spinner-clear-all"></span>
                     </button>
-                    <small class="text-danger d-block mt-2">⚠️ This action cannot be undone!</small>
+                    <small class="text-danger d-block mt-2">This action cannot be undone!</small>
                 </div>
             </div>
 
-            <!-- Clear by Type -->
             <div class="col-md-6 col-lg-4">
                 <div class="tool-card text-center">
                     <div class="tool-icon">
@@ -154,7 +156,6 @@
                 </div>
             </div>
 
-            <!-- Clear by IP -->
             <div class="col-md-6 col-lg-4">
                 <div class="tool-card text-center">
                     <div class="tool-icon">
@@ -175,7 +176,6 @@
                 </div>
             </div>
 
-            <!-- Backup Database -->
             <div class="col-md-6 col-lg-4">
                 <div class="tool-card text-center">
                     <div class="tool-icon">
@@ -190,7 +190,6 @@
                 </div>
             </div>
 
-            <!-- Export to CSV -->
             <div class="col-md-6 col-lg-4">
                 <div class="tool-card text-center">
                     <div class="tool-icon">
@@ -204,25 +203,21 @@
                 </div>
             </div>
 
-            <!-- Generate Test Attacks -->
             <div class="col-md-6 col-lg-4">
                 <div class="tool-card text-center">
                     <div class="tool-icon">
-                        <i class="fas fa-bomb"></i>
+                        <i class="fas fa-info-circle"></i>
                     </div>
                     <h5>Generate Test Attacks</h5>
-                    <p class="text-muted">Simulate attacks for testing</p>
-                    <select class="form-select mb-2" id="attackCategory">
-                        <option value="all">All Attack Types</option>
-                        <option value="sql">SQL Injection</option>
-                        <option value="xss">Cross-Site Scripting</option>
-                        <option value="cmd">Command Injection</option>
-                        <option value="traversal">Directory Traversal</option>
-                        <option value="file">File Inclusion</option>
-                    </select>
-                    <button class="btn btn-primary btn-action" onclick="generateAttacks()">
-                        <i class="fas fa-bomb"></i> Generate Attacks
-                        <span class="spinner-border spinner-border-sm ms-2 loading-spinner" id="spinner-generate"></span>
+                    <p class="text-muted">Use the standalone attack generator tool</p>
+                    <div class="alert alert-info mb-2">
+                        <i class="fas fa-terminal"></i> Run in separate terminal:
+                        <div class="code-box">
+                            python attack_generator_gui.py
+                        </div>
+                    </div>
+                    <button class="btn btn-secondary btn-action" disabled>
+                        <i class="fas fa-external-link-alt"></i> Use External Tool
                     </button>
                 </div>
             </div>
@@ -231,18 +226,12 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        function showAlert(message, type = 'success') {
+        function showAlert(message, type) {
             const alertDiv = document.createElement('div');
-            alertDiv.className = `alert alert-${type} alert-dismissible fade show alert-custom`;
-            alertDiv.innerHTML = `
-                ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            `;
+            alertDiv.className = 'alert alert-' + type + ' alert-dismissible fade show alert-custom';
+            alertDiv.innerHTML = message + '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
             document.getElementById('alertContainer').appendChild(alertDiv);
-            
-            setTimeout(() => {
-                alertDiv.remove();
-            }, 5000);
+            setTimeout(function() { alertDiv.remove(); }, 5000);
         }
 
         function showSpinner(id) {
@@ -253,32 +242,32 @@
             document.getElementById(id).classList.remove('active');
         }
 
-        async function clearLogs(type) {
-            let confirmMsg = '';
-            let payload = { type: type };
-            let spinnerId = '';
+        function clearLogs(type) {
+            var confirmMsg = '';
+            var payload = { type: type };
+            var spinnerId = '';
 
             if (type === 'all') {
                 confirmMsg = 'Are you sure you want to DELETE ALL LOGS? This cannot be undone!';
                 payload.type = 'all';
                 spinnerId = 'spinner-clear-all';
             } else if (type === 'type') {
-                const attackType = document.getElementById('attackTypeSelect').value;
+                var attackType = document.getElementById('attackTypeSelect').value;
                 if (!attackType) {
                     showAlert('Please select an attack type', 'warning');
                     return;
                 }
-                confirmMsg = `Delete all "${attackType}" logs?`;
+                confirmMsg = 'Delete all "' + attackType + '" logs?';
                 payload.type = 'by_attack_type';
                 payload.attack_type = attackType;
                 spinnerId = 'spinner-clear-type';
             } else if (type === 'ip') {
-                const ip = document.getElementById('ipSelect').value;
+                var ip = document.getElementById('ipSelect').value;
                 if (!ip) {
                     showAlert('Please select an IP address', 'warning');
                     return;
                 }
-                confirmMsg = `Delete all logs from ${ip}?`;
+                confirmMsg = 'Delete all logs from ' + ip + '?';
                 payload.type = 'by_ip';
                 payload.ip = ip;
                 spinnerId = 'spinner-clear-ip';
@@ -290,79 +279,48 @@
 
             showSpinner(spinnerId);
 
-            try {
-                const response = await fetch('/api/db/clear', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                const data = await response.json();
-
+            fetch('/api/db/clear', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(function(response) { return response.json(); })
+            .then(function(data) {
                 if (data.success) {
-                    showAlert(`✅ ${data.message}`, 'success');
-                    setTimeout(() => location.reload(), 1500);
+                    showAlert('Success: ' + data.message, 'success');
+                    setTimeout(function() { location.reload(); }, 1500);
                 } else {
-                    showAlert(`❌ Error: ${data.error}`, 'danger');
+                    showAlert('Error: ' + data.error, 'danger');
                 }
-            } catch (error) {
-                showAlert(`❌ Error: ${error.message}`, 'danger');
-            } finally {
                 hideSpinner(spinnerId);
-            }
+            })
+            .catch(function(error) {
+                showAlert('Error: ' + error.message, 'danger');
+                hideSpinner(spinnerId);
+            });
         }
 
-        async function backupDatabase() {
+        function backupDatabase() {
             showSpinner('spinner-backup');
 
-            try {
-                const response = await fetch('/api/db/backup', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
-                });
-
-                const data = await response.json();
-
+            fetch('/api/db/backup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(function(response) { return response.json(); })
+            .then(function(data) {
                 if (data.success) {
-                    showAlert(`✅ Backup created: ${data.filename} (${(data.size / 1024).toFixed(2)} KB)`, 'success');
+                    var size = (data.size / 1024).toFixed(2);
+                    showAlert('Backup created: ' + data.filename + ' (' + size + ' KB)', 'success');
                 } else {
-                    showAlert(`❌ Error: ${data.error}`, 'danger');
+                    showAlert('Error: ' + data.error, 'danger');
                 }
-            } catch (error) {
-                showAlert(`❌ Error: ${error.message}`, 'danger');
-            } finally {
                 hideSpinner('spinner-backup');
-            }
-        }
-
-        async function generateAttacks() {
-            const category = document.getElementById('attackCategory').value;
-            
-            if (!confirm(`Generate test attacks (${category})? This will send multiple requests to your WAF.`)) {
-                return;
-            }
-
-            showSpinner('spinner-generate');
-
-            try {
-                const response = await fetch('/api/attacks/generate', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ category: category })
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    showAlert(`✅ Attack generation started! Refresh the Monitor page in 10-15 seconds to see results.`, 'success');
-                } else {
-                    showAlert(`❌ Error: ${data.error}`, 'danger');
-                }
-            } catch (error) {
-                showAlert(`❌ Error: ${error.message}`, 'danger');
-            } finally {
-                hideSpinner('spinner-generate');
-            }
+            })
+            .catch(function(error) {
+                showAlert('Error: ' + error.message, 'danger');
+                hideSpinner('spinner-backup');
+            });
         }
     </script>
 </body>

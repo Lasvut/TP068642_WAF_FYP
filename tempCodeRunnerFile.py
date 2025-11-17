@@ -1,4 +1,4 @@
-from anomaly_detection import AnomalyDetector
+from ultra_anomaly_detection import AnomalyDetector
 import time
 
 def test_accuracy():
