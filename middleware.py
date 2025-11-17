@@ -8,7 +8,8 @@ from database import log_attack, get_client_ip
 # Import the enhanced detector (now with ML and statistical analysis)
 from ultra_anomaly_detection import EnhancedUltraAnomalyDetector as AnomalyDetector
 
-SAFE_PATHS = ['/login', '/', '/logout', '/favicon.ico', '/monitor', '/api/logs', '/dashboard', '/tools']
+SAFE_PATHS = ['/login', '/', '/logout', '/favicon.ico', '/monitor', '/api/logs', '/dashboard', '/tools',
+              '/admin/attack-generator', '/admin/anomaly-testing', '/admin/user-management']
 
 # Administrative endpoints that bypass anomaly detection when authenticated
 # These are legitimate operations that may contain SQL/command keywords
@@ -17,6 +18,9 @@ ADMIN_ENDPOINTS = [
     '/api/db/backup',    # Database backup
     '/api/db/export',    # CSV export
     '/api/db/stats',     # Database statistics
+    '/api/admin/generate-attacks',  # Attack generator API
+    '/api/admin/run-anomaly-test',  # Anomaly testing API
+    '/api/admin/create-user',       # User management API
 ]
 
 # Initialize enhanced anomaly detector with ML enabled
@@ -103,11 +107,15 @@ def waf_middleware(app):
         # Skip monitoring for safe paths (GET only, no query params)
         if request.path in SAFE_PATHS and request.method == 'GET' and not request.args:
             return
-        
+
+        # Skip login/logout POST requests (authentication forms should not be blocked)
+        if request.path in ['/login', '/logout'] and request.method == 'POST':
+            return
+
         # Skip static files
         if request.path.startswith('/static'):
             return
-        
+
         # Skip admin endpoints if user is authenticated
         # These are legitimate operations that may contain SQL/command keywords
         if request.path in ADMIN_ENDPOINTS:
